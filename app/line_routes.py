@@ -15,6 +15,11 @@ from starlette.concurrency import run_in_threadpool
 from app.audit_supabase import log_audit
 from app.combined_ask import answer_for_user
 from app.config import get_settings
+from app.line_group_policy import (
+    normalize_group_question,
+    parse_name_aliases,
+    should_respond_line_event,
+)
 from app.sheets_errors import format_sheets_user_message_with_retry_hint
 
 log = logging.getLogger(__name__)
@@ -61,6 +66,27 @@ async def _reply_line(reply_token: str, text: str) -> bool:
     return True
 
 
+def _question_from_event(
+    ev: dict[str, Any],
+    *,
+    aliases: tuple[str, ...],
+    respond_reason: str,
+) -> str:
+    msg = ev.get("message") or {}
+    text = (msg.get("text") or "").strip()
+    mention = msg.get("mention")
+    source_type = (ev.get("source") or {}).get("type") or ""
+
+    if source_type in ("group", "room"):
+        q = normalize_group_question(text, mention, aliases)
+    else:
+        q = text
+
+    if not q and respond_reason == "mention":
+        return "（メンション）"
+    return q
+
+
 async def handle_line_webhook(request: Request) -> dict[str, str]:
     s = get_settings()
     if not s.line_channel_secret:
@@ -79,15 +105,36 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
     except json.JSONDecodeError as e:
         raise HTTPException(400, "Invalid JSON") from e
 
+    aliases = parse_name_aliases(s.line_bot_name_aliases)
+    bot_user_id = (s.line_bot_user_id or "").strip() or None
+
     for ev in data.get("events", []):
         if ev.get("type") != "message":
             continue
         msg = ev.get("message") or {}
         if msg.get("type") != "text":
             continue
-        q = (msg.get("text") or "").strip()
+
+        should, reason = should_respond_line_event(
+            ev,
+            aliases=aliases,
+            bot_user_id=bot_user_id,
+        )
+        if not should:
+            log.debug(
+                "LINE skip: reason=%s source=%s",
+                reason,
+                (ev.get("source") or {}).get("type"),
+            )
+            continue
+
         reply_token = ev.get("replyToken")
-        if not q or not reply_token:
+        if not reply_token:
+            continue
+
+        source_type = (ev.get("source") or {}).get("type") or ""
+        q = _question_from_event(ev, aliases=aliases, respond_reason=reason)
+        if not q:
             continue
 
         try:
@@ -109,7 +156,14 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
                 log.exception("LINE エラー返信も失敗")
         else:
             try:
-                log_audit("line_webhook", {"question_len": len(q)})
+                log_audit(
+                    "line_webhook",
+                    {
+                        "question_len": len(q),
+                        "line_source": source_type,
+                        "respond_reason": reason,
+                    },
+                )
             except Exception:
                 log.exception("監査ログ（Supabase）の記録に失敗しました（返信は済み）")
 

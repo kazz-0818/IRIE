@@ -58,6 +58,15 @@ class Settings(BaseSettings):
         default=None,
         alias="LINE_CHANNEL_ACCESS_TOKEN",
     )
+    # グループ／ルーム: メンションまたは名前呼びがあるときのみ返信
+    line_bot_name_aliases: str | None = Field(
+        default=None,
+        alias="LINE_BOT_NAME_ALIASES",
+    )
+    line_bot_user_id: str | None = Field(
+        default=None,
+        alias="LINE_BOT_USER_ID",
+    )
 
 
 @lru_cache
