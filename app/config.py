@@ -3,6 +3,10 @@ from functools import lru_cache
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.config_env_alias import apply_lira_env_aliases
+
+apply_lira_env_aliases()
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
