@@ -56,6 +56,18 @@ def test_explicit_month() -> None:
     assert res.source == "explicit"
 
 
+def test_explicit_shorthand_month() -> None:
+    repo = _repo_with_months(
+        [
+            MonthlySummaryRow("2026-04", 1_013_542, 20, 180, None),
+            MonthlySummaryRow("2026-05", 0, 0, 0, None),
+        ]
+    )
+    res = resolve_target_month("4月の売上", repo)
+    assert res.month == "2026-04"
+    assert res.source == "explicit"
+
+
 def test_resolve_default_api_month() -> None:
     repo = _repo_with_months(
         [

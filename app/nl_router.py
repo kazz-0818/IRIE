@@ -4,9 +4,8 @@ import re
 from datetime import date
 from typing import Any
 
+from app.parse_util import extract_month_from_question
 from app.services import SheetRepository
-
-_MONTH_RE = re.compile(r"(20\d{2})[-年/](\d{1,2})")
 _GREETING_RE = re.compile(
     r"^(こんにちは|こんちゃ|こんばんは|おはよう|おはよ|はろー|やあ|よう|hello|hi)\s*[!！。、,]*\s*$",
     re.IGNORECASE,
@@ -86,11 +85,7 @@ _CASUAL_HINTS: tuple[str, ...] = (
 
 
 def extract_month(question: str) -> str | None:
-    m = _MONTH_RE.search(question)
-    if not m:
-        return None
-    y, mo = int(m.group(1)), int(m.group(2))
-    return f"{y:04d}-{mo:02d}"
+    return extract_month_from_question(question)
 
 
 def _has(q: str, *keys: str) -> bool:

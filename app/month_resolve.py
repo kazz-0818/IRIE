@@ -6,8 +6,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Literal
 
-from app.nl_router import extract_month
-from app.parse_util import parse_month_key_from_cell
+from app.parse_util import extract_month_from_question, parse_month_key_from_cell
 from app.services import SheetRepository
 
 MonthSource = Literal[
@@ -26,9 +25,10 @@ class TargetMonthResolution:
     calendar_month: str
     available_months: tuple[str, ...]
     month_column_label: str | None = None
+    user_calendar_month: str | None = None
 
     def as_context(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "target_month": self.month,
             "target_month_source": self.source,
             "calendar_month": self.calendar_month,
@@ -36,6 +36,9 @@ class TargetMonthResolution:
             "month_column_label": self.month_column_label,
             "month_selection_note": _selection_note(self),
         }
+        if self.user_calendar_month and self.user_calendar_month != self.month:
+            out["user_calendar_month"] = self.user_calendar_month
+        return out
 
 
 def _selection_note(res: TargetMonthResolution) -> str:
@@ -49,6 +52,11 @@ def _selection_note(res: TargetMonthResolution) -> str:
             "数値がある最新の月を対象にしました。"
         )
     if res.source == "latest_sheet_data_fallback":
+        if res.user_calendar_month:
+            return (
+                f"「今月」({res.user_calendar_month}) の売上・利益はシート上未確定のため、"
+                f"直近の確定実績 {res.month} で回答します。"
+            )
         return (
             "指定・当月に相当する列に実績が無かったため、"
             "シート上で数値がある最新の月に切り替えました。"
@@ -84,6 +92,9 @@ def _available_months_from_repo(repo: SheetRepository) -> tuple[str, ...]:
 
 def _latest_month_with_data(repo: SheetRepository) -> str | None:
     rows = repo.load_summary_rows()
+    with_sales = [r for r in rows if r.sales is not None and r.sales != 0]
+    if with_sales:
+        return max(r.month for r in with_sales)
     with_data = [r for r in rows if _month_has_data(r)]
     if not with_data:
         return None
@@ -118,7 +129,8 @@ def resolve_target_month(question: str, repo: SheetRepository) -> TargetMonthRes
     calendar = _calendar_month_str()
     available = _available_months_from_repo(repo)
     latest = _latest_month_with_data(repo)
-    explicit = extract_month(question)
+    explicit = extract_month_from_question(question)
+    user_calendar: str | None = None
 
     if explicit:
         month = explicit
@@ -126,6 +138,7 @@ def resolve_target_month(question: str, repo: SheetRepository) -> TargetMonthRes
     elif _prefers_calendar_current_month(question):
         month = calendar
         source = "calendar_current"
+        user_calendar = calendar
     elif latest:
         month = latest
         source = "latest_sheet_data"
@@ -135,9 +148,17 @@ def resolve_target_month(question: str, repo: SheetRepository) -> TargetMonthRes
 
     rows_by_month = {r.month: r for r in repo.load_summary_rows()}
     chosen_row = rows_by_month.get(month)
-    if rows_by_month and not _month_has_data(chosen_row) and latest and latest != month:
+    chosen_has_sales = chosen_row is not None and chosen_row.sales not in (None, 0)
+    if (
+        rows_by_month
+        and not chosen_has_sales
+        and latest
+        and latest != month
+    ):
         month = latest
         source = "latest_sheet_data_fallback"
+        if user_calendar is None and _prefers_calendar_current_month(question):
+            user_calendar = calendar
 
     label = _month_column_label(repo, month)
     return TargetMonthResolution(
@@ -146,6 +167,7 @@ def resolve_target_month(question: str, repo: SheetRepository) -> TargetMonthRes
         calendar_month=calendar,
         available_months=available,
         month_column_label=label,
+        user_calendar_month=user_calendar if user_calendar != month else None,
     )
 
 

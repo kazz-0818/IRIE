@@ -18,6 +18,7 @@ _EXPENSE_LABELS = re.compile(
 _PROFIT_LABELS = re.compile(
     r"(利益|営業利益|粗利|純利益|差引|収支)",
 )
+_SALES_TOTAL_LABEL = re.compile(r"(売上合計|売上計|合計売上|売上高合計)")
 
 
 def looks_like_horizontal_month_header(values: list[list[Any]], header_row_index: int) -> bool:
@@ -98,3 +99,57 @@ def extract_horizontal_monthly(
         profit=profit,
         margin_rate=margin_rate,
     )
+
+
+def extract_horizontal_month_snapshot(
+    values: list[list[Any]],
+    header_row_index: int,
+    month: str,
+    *,
+    max_line_items: int = 35,
+) -> dict[str, Any] | None:
+    """横持ち表の指定月列をコードで読み取り（LLM の列取り違え防止）。"""
+    if header_row_index >= len(values):
+        return None
+    header = values[header_row_index]
+    col_idx: int | None = None
+    column_label: str | None = None
+    for j, cell in enumerate(header):
+        mk = parse_month_key_from_cell(cell)
+        if mk == month:
+            col_idx = j
+            column_label = str(cell).strip() if cell is not None else None
+            break
+    if col_idx is None:
+        return None
+
+    line_items: list[dict[str, Any]] = []
+    sales_total: int | None = None
+    for r in range(header_row_index + 1, len(values)):
+        label = _row_label(values, r)
+        if not label:
+            continue
+        row = values[r]
+        raw = row[col_idx] if col_idx < len(row) else None
+        val = parse_jpy_amount(raw)
+        if val is None:
+            continue
+        if _EXPENSE_LABELS.search(label) or _PROFIT_LABELS.search(label):
+            continue
+        if _SALES_TOTAL_LABEL.search(label):
+            sales_total = val
+            continue
+        line_items.append({"label": label, "amount_jpy": val})
+
+    if sales_total is None and not line_items:
+        return None
+
+    if len(line_items) > max_line_items:
+        line_items = line_items[:max_line_items]
+
+    return {
+        "month": month,
+        "column_label": column_label,
+        "sales_total_jpy": sales_total,
+        "line_items": line_items,
+    }

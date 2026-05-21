@@ -6,6 +6,10 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 _MONTH_RE = re.compile(r"^(\d{4})[-/](\d{1,2})$")
+# 質問文: 2026-04, 2026年4月, 2026/4
+_MONTH_IN_QUESTION_RE = re.compile(r"(20\d{2})\s*[-年/.]\s*(\d{1,2})")
+# 質問文: 4月, 2026年4月（年省略時は ref の年。未来月のみなら前年）
+_JP_MONTH_IN_QUESTION_RE = re.compile(r"(?:(20\d{2})\s*年)?\s*(\d{1,2})\s*月")
 # 列ヘッダ等: 2026/3, 2026.3, 2026年3月, 2026-03
 _MONTH_CELL_RE = re.compile(r"(20\d{2})\s*[/./年-]\s*(\d{1,2})")
 
@@ -45,6 +49,31 @@ def parse_date(raw: Any) -> date | None:
             return date.fromordinal(epoch.toordinal() + int(n))
     except ValueError:
         pass
+    return None
+
+
+def extract_month_from_question(
+    question: str,
+    ref: date | None = None,
+) -> str | None:
+    """質問から YYYY-MM を抽出（「4月の売上」「2026年4月」等）。"""
+    ref = ref or date.today()
+    q = question.strip()
+    if not q:
+        return None
+    m = _MONTH_IN_QUESTION_RE.search(q)
+    if m:
+        y, mo = int(m.group(1)), int(m.group(2))
+        if 1 <= mo <= 12:
+            return f"{y:04d}-{mo:02d}"
+    m2 = _JP_MONTH_IN_QUESTION_RE.search(q)
+    if m2:
+        y = int(m2.group(1)) if m2.group(1) else ref.year
+        mo = int(m2.group(2))
+        if 1 <= mo <= 12:
+            if not m2.group(1) and mo > ref.month:
+                y -= 1
+            return f"{y:04d}-{mo:02d}"
     return None
 
 

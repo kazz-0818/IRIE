@@ -88,8 +88,11 @@ def build_accounting_context(repo: SheetRepository, question: str) -> dict[str, 
         :25
     ]
 
+    sales_snap = repo.month_sales_snapshot(month) if repo.resolved_sheets.get("summary") else None
+
     rules_block: dict[str, Any] = {
         "monthly_summary_row": summ_dict,
+        "authoritative_month_sales": sales_snap,
         "unpaid_receivables": unpaid,
         "receivables_due_today": due_today,
         "overdue_unpaid_receivables": overdue,
@@ -100,10 +103,10 @@ def build_accounting_context(repo: SheetRepository, question: str) -> dict[str, 
     sparse = structured_data_is_sparse(rules_block)
 
     month_hint = (
-        "回答の対象月は target_month の列のみ使用すること。"
-        "month_column_label があればその列見出しと数値を対応づけること。"
-        "target_month と列見出しが食い違う場合は数値の列を優先し、"
-        "対象月を正直に述べること（例: 5月列が空で4月列を読んだ場合は4月の実績と明記）。"
+        "authoritative_month_sales がある場合はそれを最優先し、"
+        "回答の対象月は必ず JSON の target_month（例: 2026-04 → 2026年4月）と一致させること。"
+        "month_selection_note を冒頭1文で反映すること。"
+        "target_month と異なる月の数字を述べないこと。"
     )
     ctx: dict[str, Any] = {
         "response_mode": "accounting",
