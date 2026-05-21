@@ -14,7 +14,7 @@ from app.deployment_info import deployment_revision
 from app.line_routes import handle_line_webhook
 from app.line_routes import router as line_router
 from app.llm_ask import answer_with_openai
-from app.llm_context import build_accounting_context
+from app.llm_context import build_accounting_context, build_conversation_context
 from app.parse_util import is_paid_status
 from app.services import (
     SheetRepository,
@@ -30,6 +30,7 @@ from app.sheets_client import build_sheets_service, list_sheet_titles
 from app.sheets_errors import format_sheets_user_message
 
 Audience = Literal["internal", "client"]
+_CONVERSATION_INTENTS = frozenset({"greeting", "casual_chat", "unknown"})
 
 
 def get_repo() -> SheetRepository:
@@ -312,15 +313,25 @@ def post_ask(body: AskBody, repo: RepoDep):
         "ask",
         {"intent": structured.get("intent"), "month": month},
     )
-    if structured.get("intent") == "greeting":
-        return {"mode": "rules", **structured}
+    intent = structured.get("intent", "unknown")
     s = get_settings()
     if s.openai_api_key:
         try:
-            ctx = build_accounting_context(repo, month)
-            answer = answer_with_openai(body.question, ctx)
+            if intent in _CONVERSATION_INTENTS:
+                ctx = build_conversation_context(repo, month, intent)
+                answer = answer_with_openai(
+                    body.question, ctx, mode="conversation"
+                )
+            else:
+                ctx = build_accounting_context(repo, month)
+                answer = answer_with_openai(
+                    body.question, ctx, mode="accounting"
+                )
             return {
                 "mode": "openai",
+                "response_kind": (
+                    "conversation" if intent in _CONVERSATION_INTENTS else "accounting"
+                ),
                 "answer": _reading_scope_notice(repo) + answer,
                 "structured": structured,
             }

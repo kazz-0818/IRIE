@@ -24,8 +24,8 @@ def run_rules_ask(question: str, repo: SheetRepository, month: str) -> dict[str,
     route = route_question(question, repo)
     intent = route["intent"]
 
-    if intent == "greeting":
-        return {"intent": "greeting", **meta}
+    if intent in ("greeting", "casual_chat"):
+        return {"intent": intent, **meta}
 
     if intent == "summary":
         s = repo.summary_for_month(month) if repo.resolved_sheets.get("summary") else None

@@ -8,8 +8,80 @@ from app.services import SheetRepository
 
 _MONTH_RE = re.compile(r"(20\d{2})[-年/](\d{1,2})")
 _GREETING_RE = re.compile(
-    r"^(こんにちは|こんちゃ|こんばんは|おはよう|おはよ|はろー|やあ|よう|hello|hi)\s*[!！。]*$",
+    r"^(こんにちは|こんちゃ|こんばんは|おはよう|おはよ|はろー|やあ|よう|hello|hi)\s*[!！。、,]*\s*$",
     re.IGNORECASE,
+)
+
+# 経理キーワードが無いときだけ雑談扱い（あれば先に summary / receivables 等へ）
+_ACCOUNTING_HINTS: tuple[str, ...] = (
+    "売上",
+    "経費",
+    "利益",
+    "収支",
+    "入金",
+    "支払",
+    "未入金",
+    "未払",
+    "請求",
+    "黒字",
+    "赤字",
+    "月次",
+    "レポート",
+    "サマリー",
+    "損益",
+    "スポンサー",
+    "事業実績",
+    "経費詳細",
+    "シート",
+    "スプレッド",
+    "今月どう",
+    "今月の状況",
+    "今月の売上",
+    "督促",
+    "振込",
+    "payable",
+    "receivable",
+    "summary",
+    "pl",
+    "損益",
+)
+
+_CASUAL_HINTS: tuple[str, ...] = (
+    "ありがと",
+    "有難う",
+    "お疲れ",
+    "おつかれ",
+    "よろしく",
+    "承知",
+    "了解",
+    "なるほど",
+    "そうなんだ",
+    "そうなん",
+    "へー",
+    "へえ",
+    "笑",
+    "www",
+    "w ",
+    "雑談",
+    "暇",
+    "元気",
+    "調子",
+    "LIRAって",
+    "LIRAとは",
+    "リラって",
+    "あなたは誰",
+    "君は誰",
+    "何ができる",
+    "できること",
+    "使い方",
+    "ヘルプ",
+    "助けて",
+    "話そう",
+    "話して",
+    "ちょっと相談",
+    "おはよう",
+    "こんにちは",
+    "こんばんは",
 )
 
 
@@ -25,13 +97,42 @@ def _has(q: str, *keys: str) -> bool:
     return any(k in q for k in keys)
 
 
+def has_accounting_intent(q: str) -> bool:
+    return _has(q, *_ACCOUNTING_HINTS)
+
+
+def is_casual_chat(q: str) -> bool:
+    """経理以外の挨拶・雑談・自己紹介系（短いメッセージ向け）。"""
+    if has_accounting_intent(q):
+        return False
+    if _GREETING_RE.match(q):
+        return True
+    if _has(q, *_CASUAL_HINTS):
+        return True
+    # 短い挨拶混じり（「こんにちは、よろしく」等）
+    if len(q) <= 48 and _has(
+        q,
+        "こんにちは",
+        "こんばんは",
+        "おはよう",
+        "はじめまして",
+        "初めまして",
+    ):
+        return True
+    return False
+
+
 def route_question(question: str, repo: SheetRepository) -> dict[str, Any]:
     """意図のざっくり分類。summary の月次行取得だけは run_rules_ask に任せ、ここでは呼ばない。"""
     q = question.strip()
     month = extract_month(q) or f"{date.today().year:04d}-{date.today().month:02d}"
 
-    if _GREETING_RE.match(q):
-        return {"intent": "greeting", "month": month}
+    # 経理キーワードが無ければ雑談優先（Sheets 読み取りを避ける）
+    if not has_accounting_intent(q):
+        if _GREETING_RE.match(q):
+            return {"intent": "greeting", "month": month}
+        if is_casual_chat(q):
+            return {"intent": "casual_chat", "month": month}
 
     # --- レポート系（先に判定） ---
     if _has(
@@ -143,6 +244,9 @@ def route_question(question: str, repo: SheetRepository) -> dict[str, Any]:
         )
     ):
         return {"intent": "summary", "month": month}
+
+    if is_casual_chat(q):
+        return {"intent": "casual_chat", "month": month}
 
     return {
         "intent": "unknown",

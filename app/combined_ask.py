@@ -5,11 +5,13 @@ import logging
 from app.ask_service import month_from_question, run_rules_ask
 from app.config import get_settings
 from app.llm_ask import answer_with_openai
-from app.llm_context import build_accounting_context
+from app.llm_context import build_accounting_context, build_conversation_context
 from app.services import SheetRepository
 from app.sheets_errors import format_sheets_user_message_with_retry_hint
 
 log = logging.getLogger(__name__)
+
+_CONVERSATION_INTENTS = frozenset({"greeting", "casual_chat", "unknown"})
 
 
 def _partial_notice(repo: SheetRepository) -> str:
@@ -24,7 +26,13 @@ def _fallback_text(structured: dict) -> str:
     if intent == "greeting":
         return (
             "LIRA 経理部です。こんにちは。\n"
-            "「今月の売上」「入金予定」「未入金」「支払い予定」など、知りたいことを送ってください。"
+            "「今月の売上」「入金予定」「未入金」「支払い予定」など、気軽に聞いてください。"
+        )
+    if intent == "casual_chat":
+        return (
+            "LIRA です。お気軽にどうぞ。\n"
+            "雑談も大丈夫です。経理の数字が知りたくなったら、"
+            "「今月どう？」「入金予定」などと送ってください。"
         )
     if intent == "summary":
         d = structured.get("data") or {}
@@ -83,8 +91,7 @@ def answer_for_user(question: str, repo: SheetRepository | None = None) -> str:
             repo = SheetRepository()
         month = month_from_question(question)
         structured = run_rules_ask(question, repo, month)
-        if structured.get("intent") == "greeting":
-            return _fallback_text(structured)
+        intent = structured.get("intent", "unknown")
         s = get_settings()
         if not s.openai_api_key:
             return (
@@ -96,8 +103,12 @@ def answer_for_user(question: str, repo: SheetRepository | None = None) -> str:
                 + _fallback_text(structured)
             )
         try:
-            ctx = build_accounting_context(repo, month)
-            ans = answer_with_openai(question, ctx)
+            if intent in _CONVERSATION_INTENTS:
+                ctx = build_conversation_context(repo, month, intent)
+                ans = answer_with_openai(question, ctx, mode="conversation")
+            else:
+                ctx = build_accounting_context(repo, month)
+                ans = answer_with_openai(question, ctx, mode="accounting")
             return _partial_notice(repo) + ans
         except Exception:
             log.exception("OpenAI 応答失敗、フォールバックします")
