@@ -18,6 +18,7 @@ _SYSTEM_ACCOUNTING = (
     "固定の「月次サマリー」列とは限りません。rules_extracted が空でも、"
     "raw_sheet_previews の grid から売上・経費・利益・入金・支払を読み取って答えてください。\n"
     "authoritative_month_sales がある場合は raw_sheet_previews より優先して使ってください。\n"
+    "質問に【リプライ先のメッセージ】があれば「これ」「それ」はその引用を指すと解釈してください。\n"
     "回答の対象月は JSON の target_month のみ（YYYY年M月で明記）。"
     "month_selection_note も冒頭に反映してください。\n"
     "JSON に根拠のない数値はでっち上げず、「シート上では確認できません」と述べてください。\n"

@@ -2,13 +2,15 @@
 
 - 1:1（source.type=user）… 常に応答
 - グループ／ルーム … **メンション** または **ボット名呼び** があるときのみ応答
-- リプライ（返信）でも同じ。引用だけでは応答しない
+- リプライ … LIRA 自身の発言への返信は名前なしでも応答（それ以外はメンション・名前呼び必須）
 """
 
 from __future__ import annotations
 
 import re
 from typing import Any
+
+from app.line_quote_context import LineQuoteContext
 
 # デフォルトの名前呼び（LINE_BOT_NAME_ALIASES で上書き可）
 _DEFAULT_NAME_ALIASES: tuple[str, ...] = (
@@ -101,6 +103,7 @@ def should_respond_line_event(
     *,
     aliases: tuple[str, ...],
     bot_user_id: str | None = None,
+    quote: LineQuoteContext | None = None,
 ) -> tuple[bool, str]:
     """
     応答すべきかと理由を返す。
@@ -121,6 +124,9 @@ def should_respond_line_event(
 
     text = (msg.get("text") or "").strip()
     mention = msg.get("mention")
+
+    if quote and quote.quoted_from_bot and quote.quoted_text:
+        return True, "quote_reply_to_bot"
 
     if bot_mentioned_in_message(msg):
         return True, "mention"

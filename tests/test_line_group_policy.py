@@ -70,7 +70,7 @@ def test_group_responds_on_bot_mention_is_self() -> None:
 
 
 def test_group_reply_without_mention_stays_silent() -> None:
-    """リプライでもメンション・名前呼びが無ければ無反応。"""
+    """他人へのリプライで名前・メンション・LIRA引用が無ければ無反応。"""
     ev = {
         "source": {"type": "group", "groupId": "G1"},
         "message": {

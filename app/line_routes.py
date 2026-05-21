@@ -20,6 +20,8 @@ from app.line_group_policy import (
     parse_name_aliases,
     should_respond_line_event,
 )
+from app.line_message_cache import get_line_message_cache, line_chat_key
+from app.line_quote_context import enrich_question_with_quote, resolve_line_quote
 from app.sheets_errors import format_sheets_user_message_with_retry_hint
 
 log = logging.getLogger(__name__)
@@ -35,7 +37,20 @@ def _verify_signature(channel_secret: str, body: bytes, signature: str | None) -
     return hmac.compare_digest(expected, signature)
 
 
-async def _reply_line(reply_token: str, text: str) -> bool:
+def _remember_inbound_message(ev: dict[str, Any], chat_key: str) -> None:
+    msg = ev.get("message") or {}
+    mid = msg.get("id")
+    text = (msg.get("text") or "").strip()
+    if mid and text:
+        get_line_message_cache().put(chat_key, str(mid), text, "inbound")
+
+
+async def _reply_line(
+    reply_token: str,
+    text: str,
+    *,
+    chat_key: str | None = None,
+) -> bool:
     """返信 API を叩く。失敗しても例外は出さない（Webhook 本体は 200 を返すため）。"""
     s = get_settings()
     token = s.line_channel_access_token
@@ -60,6 +75,17 @@ async def _reply_line(reply_token: str, text: str) -> bool:
         if r.status_code >= 400:
             log.warning("LINE reply API: %s %s", r.status_code, r.text[:500])
             return False
+        if chat_key and r.status_code < 300:
+            try:
+                body = r.json()
+                for sm in body.get("sentMessages") or []:
+                    mid = sm.get("id")
+                    if mid:
+                        get_line_message_cache().put(
+                            chat_key, str(mid), text[:4800], "outbound"
+                        )
+            except Exception:
+                log.debug("LINE 返信 messageId のキャッシュに失敗", exc_info=True)
     except Exception:
         log.exception("LINE reply API 通信エラー")
         return False
@@ -87,6 +113,8 @@ def _question_from_event(
             return "（メンション）"
         if respond_reason == "name_call":
             return "（名前呼び）"
+        if respond_reason == "quote_reply_to_bot":
+            return "（リプライ）"
     return q
 
 
@@ -110,6 +138,7 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
 
     aliases = parse_name_aliases(s.line_bot_name_aliases)
     bot_user_id = (s.line_bot_user_id or "").strip() or None
+    cache = get_line_message_cache()
 
     for ev in data.get("events", []):
         if ev.get("type") != "message":
@@ -118,16 +147,23 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
         if msg.get("type") != "text":
             continue
 
+        source = ev.get("source") or {}
+        chat_key = line_chat_key(source)
+        _remember_inbound_message(ev, chat_key)
+
+        quote = resolve_line_quote(msg, chat_key, cache)
+
         should, reason = should_respond_line_event(
             ev,
             aliases=aliases,
             bot_user_id=bot_user_id,
+            quote=quote,
         )
         if not should:
             log.debug(
                 "LINE skip: reason=%s source=%s",
                 reason,
-                (ev.get("source") or {}).get("type"),
+                source.get("type"),
             )
             continue
 
@@ -135,16 +171,18 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
         if not reply_token:
             continue
 
-        source_type = (ev.get("source") or {}).get("type") or ""
+        source_type = source.get("type") or ""
         q = _question_from_event(ev, aliases=aliases, respond_reason=reason)
         if not q:
             continue
+
+        q = enrich_question_with_quote(q, quote)
 
         try:
             text_out = await run_in_threadpool(partial(answer_for_user, q))
             if not (text_out or "").strip():
                 text_out = "（応答を生成できませんでした。もう一度お試しください。）"
-            await _reply_line(reply_token, text_out)
+            await _reply_line(reply_token, text_out, chat_key=chat_key)
         except Exception as e:
             log.exception("LINE webhook 処理エラー")
             log.error(
@@ -154,7 +192,7 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
             )
             err_reply = format_sheets_user_message_with_retry_hint(e, line_time_hint=True)
             try:
-                await _reply_line(reply_token, err_reply)
+                await _reply_line(reply_token, err_reply, chat_key=chat_key)
             except Exception:
                 log.exception("LINE エラー返信も失敗")
         else:
@@ -165,6 +203,7 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
                         "question_len": len(q),
                         "line_source": source_type,
                         "respond_reason": reason,
+                        "has_quote": bool(quote and quote.has_quote()),
                     },
                 )
             except Exception:
