@@ -83,7 +83,7 @@ def health() -> dict[str, Any]:
         "sheet_resolution_warnings": [],
         "openai_configured": bool(s.openai_api_key),
         "supabase_configured": bool(
-            s.supabase_url and (s.supabase_service_role_key or s.supabase_anon_key),
+            s.supabase_url and s.supabase_service_role_key,
         ),
         "line_configured": bool(s.line_channel_secret and s.line_channel_access_token),
     }
@@ -233,7 +233,7 @@ def integrations_status() -> dict[str, bool | str]:
     out: dict[str, bool | str] = {
         "openai_configured": bool(s.openai_api_key),
         "supabase_configured": bool(
-            s.supabase_url and (s.supabase_service_role_key or s.supabase_anon_key)
+            s.supabase_url and s.supabase_service_role_key
         ),
         "line_webhook_configured": bool(s.line_channel_secret and s.line_channel_access_token),
         "public_app_url_configured": bool(s.public_app_url),

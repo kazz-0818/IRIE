@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 def _supabase_client() -> Client | None:
     s = get_settings()
-    key = s.supabase_service_role_key or s.supabase_anon_key
+    key = s.supabase_service_role_key
     if not s.supabase_url or not key:
         return None
     return create_client(s.supabase_url, key)
