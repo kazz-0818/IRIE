@@ -17,7 +17,7 @@
 | `veriora.conversations` | スレッド。`conversation_key` は Veliora 形式と互換 |
 | `veriora.messages` | 全エージェント共通メッセージ。RITS 監査の正 |
 
-読取 VIEW: `veriora.message_feed`, `veriora.line_events_compat`
+読取 VIEW: `veriora.message_feed`（正）、`veliora.line_messages`（063 統合・管理 API 用）、`veriora.line_events_compat`
 
 ## ルーティング・監査
 
@@ -59,13 +59,15 @@
 
 ## RLS
 
-新規 `veriora.*` テーブルは RLS 有効。**サーバーは `service_role` / postgres 接続**想定。既存 RLS ポリシーは変更していません。
+`near.*` / `sera.*` / `veriora.*` / RITS `public.*`（共有 DB）は **RLS 有効・ポリシーなし**（anon/authenticated は deny）。**サーバーは `service_role` / postgres**。
+
+`public.*` 互換 VIEW は migration **062** で `security_invoker = true`（caller の RLS を継承）。
 
 ## コードからの利用
 
 - TypeScript: `src/services/supabase/repositories/*`
-- デュアル書き込み: `VERIORA_CORE_DUAL_WRITE=true`（NEAR LINE ログ）
+- LINE ログ: [`supabase-simplification.md`](supabase-simplification.md)（`VERIORA_CANONICAL_LINE_LOG` / `VERIORA_LEGACY_VELIORA_LINE_LOG`）
 
 ## migration
 
-[`migration-plan.md`](migration-plan.md) を参照。NEAR: `053`–`061`。
+[`migration-plan.md`](migration-plan.md) を参照。NEAR: `053`–`063`。
