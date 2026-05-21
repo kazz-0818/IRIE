@@ -120,7 +120,8 @@ def build_accounting_context(
         "数値がある項目は「シート上では確認できません」と言わない。"
         "回答の対象月は必ず target_month（例: 2026-04 → 2026年4月）。"
         "month_selection_note を冒頭1文で反映。"
-        "accounting_focus が expenses なら経費内訳を、sales なら売上を中心に答える。"
+        "accounting_focus=overview なら売上合計・経費合計・利益と主要内訳を簡潔に。"
+        "expenses なら経費、sales なら売上を中心に。"
     )
     ctx: dict[str, Any] = {
         "response_mode": "accounting",

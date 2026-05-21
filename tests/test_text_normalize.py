@@ -20,6 +20,20 @@ def test_route_suriage_to_summary() -> None:
     assert r["intent"] == "summary"
 
 
+def test_sensatsu_zentai_dashite() -> None:
+    repo = MagicMock()
+    repo.load_receivables.return_value = []
+    r = route_question("りら先月の全体だして", repo)
+    assert r["intent"] == "summary"
+    assert r.get("focus") == "overview"
+
+
+def test_sensatsu_suchi_dashite() -> None:
+    repo = MagicMock()
+    repo.load_receivables.return_value = []
+    assert route_question("先月の数値出して", repo)["intent"] == "summary"
+
+
 def test_conversation_month_for_keihi_followup() -> None:
     repo = MagicMock()
     repo.resolved_sheets = {"summary": "事業実績表"}

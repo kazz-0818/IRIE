@@ -92,8 +92,35 @@ def _has(q: str, *keys: str) -> bool:
     return any(k in q for k in keys)
 
 
+def _has_month_scoped_request(q: str) -> bool:
+    """「先月の全体出して」「3月の数値」など月＋取得依頼。"""
+    nq = normalize_user_question(q)
+    if not extract_month_from_question(nq):
+        return False
+    return _has(
+        nq,
+        "全体",
+        "数値",
+        "数字",
+        "実績",
+        "状況",
+        "まとめ",
+        "サマリー",
+        "出して",
+        "見せて",
+        "教えて",
+        "表示",
+        "売上",
+        "経費",
+        "利益",
+        "収支",
+        "損益",
+    )
+
+
 def has_accounting_intent(q: str) -> bool:
-    return _has(normalize_user_question(q), *_ACCOUNTING_HINTS)
+    nq = normalize_user_question(q)
+    return _has(nq, *_ACCOUNTING_HINTS) or _has_month_scoped_request(nq)
 
 
 def is_casual_chat(q: str) -> bool:
@@ -120,6 +147,8 @@ def is_casual_chat(q: str) -> bool:
 def _is_monthly_pl_query(q: str) -> bool:
     """事業実績表の月次（売上・経費・利益）。支払予定タブとは別。"""
     nq = normalize_user_question(q)
+    if _has_month_scoped_request(nq):
+        return True
     if extract_month_from_question(nq):
         if _has(nq, "売上", "経費", "利益", "収支", "損益", "黒字", "赤字", "粗利"):
             return True
@@ -154,12 +183,14 @@ def _is_monthly_pl_query(q: str) -> bool:
 
 def detect_accounting_focus(q: str) -> str | None:
     nq = normalize_user_question(q)
-    if _has(nq, "経費") and not _has(nq, "売上", "利益"):
+    if _has(nq, "経費") and not _has(nq, "売上", "利益", "全体", "数値", "数字"):
         return "expenses"
-    if _has(nq, "売上", "売り上"):
+    if _has(nq, "売上") and not _has(nq, "全体", "数値", "数字", "経費"):
         return "sales"
-    if _has(nq, "利益", "粗利", "黒字", "赤字"):
+    if _has(nq, "利益", "粗利", "黒字", "赤字") and not _has(nq, "全体", "数値"):
         return "profit"
+    if _has(nq, "全体", "数値", "数字", "まとめ", "状況", "サマリー", "出して"):
+        return "overview"
     return None
 
 
@@ -183,11 +214,20 @@ def route_question(question: str, repo: SheetRepository) -> dict[str, Any]:
         "状況まとめ",
         "今月の状況まとめ",
         "サマリー出して",
+        "全体出して",
+        "全体見せて",
+        "数値出して",
+        "数字出して",
+        "実績出して",
     ):
-        return {"intent": "summary", "month": month, "focus": focus}
+        return {"intent": "summary", "month": month, "focus": focus or "overview"}
 
     if _is_monthly_pl_query(q):
-        return {"intent": "summary", "month": month, "focus": focus}
+        return {
+            "intent": "summary",
+            "month": month,
+            "focus": focus or ("overview" if _has_month_scoped_request(q) else None),
+        }
 
     if _has(
         q,
