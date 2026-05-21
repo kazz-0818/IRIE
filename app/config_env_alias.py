@@ -70,6 +70,16 @@ LIRA_ENV_ALIASES: tuple[EnvAliasRule, ...] = (
         ("VERIORA_PUBLIC_BASE_URL", "LIRA_PUBLIC_APP_URL"),
         deprecated_legacy=True,
     ),
+    EnvAliasRule(
+        "VERIORA_RITS_BASE_URL",
+        ("RITS_BASE_URL", "RITS_URL", "LIRA_RITS_BASE_URL"),
+        deprecated_legacy=True,
+    ),
+    EnvAliasRule(
+        "VERIORA_RITS_ADMIN_API_KEY",
+        ("RITS_ADMIN_API_KEY", "LIRA_RITS_ADMIN_API_KEY"),
+        deprecated_legacy=True,
+    ),
 )
 
 

@@ -6,6 +6,7 @@ from typing import Any
 from openai import OpenAI
 
 from app.config import get_settings
+from app.llm_usage import record_llm_usage, usage_from_chat_completion
 
 
 def answer_with_openai(question: str, context: dict[str, Any]) -> str:
@@ -38,6 +39,9 @@ def answer_with_openai(question: str, context: dict[str, Any]) -> str:
         temperature=0.3,
         max_tokens=1800,
     )
+    usage = usage_from_chat_completion(resp, source="llm_ask", model=s.openai_model)
+    if usage:
+        record_llm_usage(usage)
     choice = resp.choices[0].message.content
     if not choice:
         raise RuntimeError("OpenAI から空の応答でした。")
