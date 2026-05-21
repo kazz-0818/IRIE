@@ -13,7 +13,7 @@
 3. **エージェント固有の実テーブル**は、既存パターンに合わせる:
    - NEAR: `near` schema + `near_*` テーブル（例: `near.near_inbound_messages`）
    - SERA: `sera` schema + `sera_*` テーブル
-4. **横断（組織共通）のログ・マスタ**は、既存の Postgres **`veliora` schema**（レガシー綴り）を現状の接続先とする。将来 **Veriora** 表記へ寄せる場合は **新 schema ではなく VIEW / synonym から着手**する（本 Phase では rename しない）。
+4. **横断（組織共通）のログ・マスタ**は、既存の Postgres **`veliora` schema**（レガシー綴り）に加え、新規正典は **`veriora` schema**（UUID `ai_agents` 等）。詳細は [`supabase-schema.md`](supabase-schema.md)。`veliora` は DROP せず VIEW で併存。
 
 ## 既存の「正」となるオブジェクト（参照のみ）
 
@@ -57,6 +57,15 @@
 
 - 記事・下書き・メディアは **`lram_*` テーブル** または `lram` schema に集約する案を採用（未作成）。
 - WP 本体は外部システムのため、**WP 側 ID・URL・revision** を Veriora DB に保存し、本文の正は WP またはオブジェクトストレージに任せる設計を推奨。
+
+## Supabase Table Editor での確認
+
+- **正（実テーブル）**: スキーマ **`near`** の `near_*`（例: `near.near_inbound_messages`, `near.near_user_google_oauth_accounts`）。
+- **互換（読み取り専用 VIEW）**: スキーマ **`public`** に、旧名（`inbound_messages`, `user_google_oauth_accounts` など）の VIEW がある（migration `049_public_legacy_near_views.sql`）。**中身は `near.*` と同じ**で、空に見えていたのは実テーブルが `near` に移ったため。
+- **public に残った旧実テーブルの統合**: migration `050_near_merge_public_legacy_data.sql` が、`public` にフォルダ分け前のまま残った実テーブル行を `near.*` へマージし、重複は自然キーでスキップしたうえで旧テーブルを DROP して VIEW を再作成する（冪等）。
+- **データが本当に無い**場合: Render 再作成で **`DATABASE_URL` が別 Supabase** になっていることが多い（NEAR は会話・連携行を自動削除しない）。
+- **`veliora.line_messages` だけ空**: 実体は `near.near_inbound_messages`。046 以降の横断ログは `veliora.line_message_events` に追記され、**過去分は migration 051 でバックフィル**する。会話の正は **`near` スキーマ**。
+- **`public.near_inbound_messages` 実テーブルが残っている**: 接続の `search_path` が `public` 優先だとアプリが誤テーブルに書く。051 以降は `near,public,veliora` 優先。`/health` の `db.public_legacy_base_tables` が空で、`db.near_inbound_count` が 0 でないか確認。
 
 ## migration 時の注意
 
