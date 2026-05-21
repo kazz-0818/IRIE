@@ -7,7 +7,7 @@ from typing import Any, Literal
 from app.config import Settings, get_settings
 from app.header_detect import detect_header_row_index
 from app.horizontal_summary import (
-    extract_horizontal_month_snapshot,
+    extract_horizontal_month_breakdown,
     extract_horizontal_monthly,
     looks_like_horizontal_month_header,
 )
@@ -139,8 +139,8 @@ class SheetRepository:
                 return m
         return None
 
-    def month_sales_snapshot(self, month: str) -> dict[str, Any] | None:
-        """横持ち事業実績表の指定月列（売上行）を構造化。"""
+    def month_breakdown_snapshot(self, month: str) -> dict[str, Any] | None:
+        """横持ち事業実績表の指定月列（売上・経費・利益）を構造化。"""
         if not self._sheet_summary:
             return None
         values = self._fetch_raw(self._sheet_summary)
@@ -149,10 +149,22 @@ class SheetRepository:
         for h in range(min(20, len(values))):
             if not looks_like_horizontal_month_header(values, h):
                 continue
-            snap = extract_horizontal_month_snapshot(values, h, month)
+            snap = extract_horizontal_month_breakdown(values, h, month)
             if snap:
                 return snap
         return None
+
+    def month_sales_snapshot(self, month: str) -> dict[str, Any] | None:
+        """後方互換。"""
+        full = self.month_breakdown_snapshot(month)
+        if not full:
+            return None
+        return {
+            "month": full["month"],
+            "column_label": full.get("column_label"),
+            "sales_total_jpy": full.get("sales_total_jpy"),
+            "line_items": full.get("sales_line_items") or [],
+        }
 
     def load_receivables(self) -> list[ReceivableRow]:
         sheet = self._sheet_receivables

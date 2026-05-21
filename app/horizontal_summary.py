@@ -13,8 +13,9 @@ _SALES_LABELS = re.compile(
     r"(売上|売上合計|売上高|収入|売上実績|売上計)",
 )
 _EXPENSE_LABELS = re.compile(
-    r"(経費|経費合計|支出|費用|原価|広告費|外注費|費用合計)",
+    r"(経費|経費合計|支出|費用|原価|広告費|外注費|費用合計|人件費|役員報酬|税理士|弁護士)",
 )
+_EXPENSE_TOTAL_LABEL = re.compile(r"(経費合計|支出合計|費用合計)")
 _PROFIT_LABELS = re.compile(
     r"(利益|営業利益|粗利|純利益|差引|収支)",
 )
@@ -101,30 +102,40 @@ def extract_horizontal_monthly(
     )
 
 
-def extract_horizontal_month_snapshot(
+def _find_month_column(
+    values: list[list[Any]],
+    header_row_index: int,
+    month: str,
+) -> tuple[int | None, str | None]:
+    if header_row_index >= len(values):
+        return None, None
+    header = values[header_row_index]
+    for j, cell in enumerate(header):
+        mk = parse_month_key_from_cell(cell)
+        if mk == month:
+            label = str(cell).strip() if cell is not None else None
+            return j, label or None
+    return None, None
+
+
+def extract_horizontal_month_breakdown(
     values: list[list[Any]],
     header_row_index: int,
     month: str,
     *,
-    max_line_items: int = 35,
+    max_items_per_kind: int = 30,
 ) -> dict[str, Any] | None:
-    """横持ち表の指定月列をコードで読み取り（LLM の列取り違え防止）。"""
-    if header_row_index >= len(values):
-        return None
-    header = values[header_row_index]
-    col_idx: int | None = None
-    column_label: str | None = None
-    for j, cell in enumerate(header):
-        mk = parse_month_key_from_cell(cell)
-        if mk == month:
-            col_idx = j
-            column_label = str(cell).strip() if cell is not None else None
-            break
+    """横持ち事業実績表: 指定月列の売上・経費・利益を分類して返す。"""
+    col_idx, column_label = _find_month_column(values, header_row_index, month)
     if col_idx is None:
         return None
 
-    line_items: list[dict[str, Any]] = []
+    sales_lines: list[dict[str, Any]] = []
+    expense_lines: list[dict[str, Any]] = []
     sales_total: int | None = None
+    expenses_total: int | None = None
+    profit: int | None = None
+
     for r in range(header_row_index + 1, len(values)):
         label = _row_label(values, r)
         if not label:
@@ -134,22 +145,56 @@ def extract_horizontal_month_snapshot(
         val = parse_jpy_amount(raw)
         if val is None:
             continue
-        if _EXPENSE_LABELS.search(label) or _PROFIT_LABELS.search(label):
-            continue
+
         if _SALES_TOTAL_LABEL.search(label):
             sales_total = val
             continue
-        line_items.append({"label": label, "amount_jpy": val})
+        if _EXPENSE_TOTAL_LABEL.search(label):
+            expenses_total = val
+            continue
+        if _PROFIT_LABELS.search(label):
+            profit = val
+            continue
+        if _EXPENSE_LABELS.search(label):
+            expense_lines.append({"label": label, "amount_jpy": val})
+            continue
+        if _SALES_LABELS.search(label):
+            sales_lines.append({"label": label, "amount_jpy": val})
+            continue
+        # 販売・契約金など売上内訳行（ラベルに売上語が無い行）
+        if not _EXPENSE_LABELS.search(label):
+            sales_lines.append({"label": label, "amount_jpy": val})
 
-    if sales_total is None and not line_items:
+    if not any([sales_total, expenses_total, profit, sales_lines, expense_lines]):
         return None
-
-    if len(line_items) > max_line_items:
-        line_items = line_items[:max_line_items]
 
     return {
         "month": month,
         "column_label": column_label,
         "sales_total_jpy": sales_total,
-        "line_items": line_items,
+        "sales_line_items": sales_lines[:max_items_per_kind],
+        "expenses_total_jpy": expenses_total,
+        "expense_line_items": expense_lines[:max_items_per_kind],
+        "profit_jpy": profit,
+    }
+
+
+def extract_horizontal_month_snapshot(
+    values: list[list[Any]],
+    header_row_index: int,
+    month: str,
+    *,
+    max_line_items: int = 35,
+) -> dict[str, Any] | None:
+    """後方互換: 売上側スナップショット。"""
+    full = extract_horizontal_month_breakdown(
+        values, header_row_index, month, max_items_per_kind=max_line_items
+    )
+    if not full:
+        return None
+    return {
+        "month": full["month"],
+        "column_label": full.get("column_label"),
+        "sales_total_jpy": full.get("sales_total_jpy"),
+        "line_items": full.get("sales_line_items") or [],
     }

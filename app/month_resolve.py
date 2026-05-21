@@ -6,11 +6,14 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Literal
 
+from app.chat_month_context import get_last_target_month, remember_target_month
 from app.parse_util import extract_month_from_question, parse_month_key_from_cell
 from app.services import SheetRepository
+from app.text_normalize import normalize_user_question
 
 MonthSource = Literal[
     "explicit",
+    "conversation_context",
     "calendar_current",
     "latest_sheet_data",
     "calendar_fallback",
@@ -45,6 +48,11 @@ def _selection_note(res: TargetMonthResolution) -> str:
     if res.source == "explicit":
         return (
             "質問に含まれる年月（4月・先月・来月 など）を対象月にしました。"
+        )
+    if res.source == "conversation_context":
+        return (
+            f"直前の会話で扱った対象月（{res.month}）を引き継ぎました。"
+            "（「経費は？」など月が省略された質問）"
         )
     if res.source == "calendar_current":
         return "「今月」「当月」の指定があるため、カレンダー上の当月を対象にしました。"
@@ -120,7 +128,25 @@ def _month_column_label(repo: SheetRepository, month: str) -> str | None:
     return None
 
 
-def resolve_target_month(question: str, repo: SheetRepository) -> TargetMonthResolution:
+def _followup_without_month(question: str) -> bool:
+    from app.nl_router import has_accounting_intent
+
+    q = normalize_user_question(question)
+    if not has_accounting_intent(q):
+        return False
+    if extract_month_from_question(q):
+        return False
+    if _prefers_calendar_current_month(q):
+        return False
+    return True
+
+
+def resolve_target_month(
+    question: str,
+    repo: SheetRepository,
+    *,
+    chat_key: str | None = None,
+) -> TargetMonthResolution:
     """
     対象月の決定順:
     1. 質問内の明示 YYYY-MM
@@ -128,16 +154,28 @@ def resolve_target_month(question: str, repo: SheetRepository) -> TargetMonthRes
     3. 月指定なし → サマリーシートで数値がある最新月
     4. 上記が無い → カレンダー当月
     """
+    q = normalize_user_question(question)
     calendar = _calendar_month_str()
     available = _available_months_from_repo(repo)
     latest = _latest_month_with_data(repo)
-    explicit = extract_month_from_question(question)
+    explicit = extract_month_from_question(q)
     user_calendar: str | None = None
 
     if explicit:
         month = explicit
         source: MonthSource = "explicit"
-    elif _prefers_calendar_current_month(question):
+    elif chat_key and _followup_without_month(q):
+        last = get_last_target_month(chat_key)
+        if last:
+            month = last
+            source = "conversation_context"
+        elif latest:
+            month = latest
+            source = "latest_sheet_data"
+        else:
+            month = calendar
+            source = "calendar_fallback"
+    elif _prefers_calendar_current_month(q):
         month = calendar
         source = "calendar_current"
         user_calendar = calendar
@@ -159,10 +197,12 @@ def resolve_target_month(question: str, repo: SheetRepository) -> TargetMonthRes
     ):
         month = latest
         source = "latest_sheet_data_fallback"
-        if user_calendar is None and _prefers_calendar_current_month(question):
+        if user_calendar is None and _prefers_calendar_current_month(q):
             user_calendar = calendar
 
     label = _month_column_label(repo, month)
+    if chat_key:
+        remember_target_month(chat_key, month)
     return TargetMonthResolution(
         month=month,
         source=source,
@@ -173,8 +213,13 @@ def resolve_target_month(question: str, repo: SheetRepository) -> TargetMonthRes
     )
 
 
-def resolve_target_month_str(question: str, repo: SheetRepository) -> str:
-    return resolve_target_month(question, repo).month
+def resolve_target_month_str(
+    question: str,
+    repo: SheetRepository,
+    *,
+    chat_key: str | None = None,
+) -> str:
+    return resolve_target_month(question, repo, chat_key=chat_key).month
 
 
 def resolve_default_api_month(repo: SheetRepository) -> str:

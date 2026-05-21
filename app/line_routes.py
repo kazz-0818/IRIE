@@ -15,6 +15,7 @@ from starlette.concurrency import run_in_threadpool
 from app.audit_supabase import log_audit
 from app.combined_ask import answer_for_user
 from app.config import get_settings
+from app.line_caller_address import prefix_reply_with_caller
 from app.line_group_policy import (
     normalize_group_question,
     parse_name_aliases,
@@ -22,7 +23,9 @@ from app.line_group_policy import (
 )
 from app.line_message_cache import get_line_message_cache, line_chat_key
 from app.line_quote_context import enrich_question_with_quote, resolve_line_quote
+from app.line_user_profile import fetch_line_caller_display_name
 from app.sheets_errors import format_sheets_user_message_with_retry_hint
+from app.text_normalize import normalize_user_question
 
 log = logging.getLogger(__name__)
 
@@ -178,10 +181,24 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
 
         q = enrich_question_with_quote(q, quote)
 
+        caller_display_name: str | None = None
+        if reason in ("mention", "name_call"):
+            uid = source.get("userId")
+            if isinstance(uid, str) and uid.strip():
+                caller_display_name = await fetch_line_caller_display_name(
+                    uid.strip(),
+                    group_id=source.get("groupId") if source_type == "group" else None,
+                    room_id=source.get("roomId") if source_type == "room" else None,
+                )
+
         try:
-            text_out = await run_in_threadpool(partial(answer_for_user, q))
+            text_out = await run_in_threadpool(
+                partial(answer_for_user, normalize_user_question(q), chat_key=chat_key)
+            )
             if not (text_out or "").strip():
                 text_out = "（応答を生成できませんでした。もう一度お試しください。）"
+            if reason in ("mention", "name_call"):
+                text_out = prefix_reply_with_caller(text_out, caller_display_name)
             await _reply_line(reply_token, text_out, chat_key=chat_key)
         except Exception as e:
             log.exception("LINE webhook 処理エラー")

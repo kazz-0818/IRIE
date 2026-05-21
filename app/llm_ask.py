@@ -17,11 +17,11 @@ _SYSTEM_ACCOUNTING = (
     "BRANDVOX の事業実績表・経費詳細・スポンサー管理FILE などは、"
     "固定の「月次サマリー」列とは限りません。rules_extracted が空でも、"
     "raw_sheet_previews の grid から売上・経費・利益・入金・支払を読み取って答えてください。\n"
-    "authoritative_month_sales がある場合は raw_sheet_previews より優先して使ってください。\n"
-    "質問に【リプライ先のメッセージ】があれば「これ」「それ」はその引用を指すと解釈してください。\n"
-    "回答の対象月は JSON の target_month のみ（YYYY年M月で明記）。"
-    "month_selection_note も冒頭に反映してください。\n"
-    "JSON に根拠のない数値はでっち上げず、「シート上では確認できません」と述べてください。\n"
+    "authoritative_month_breakdown がある場合は最優先（sales / expense_line_items 等）。\n"
+    "breakdown にある数値について「シート上では確認できません」とは言わない。\n"
+    "質問に【リプライ先のメッセージ】があれば「これ」「それ」は引用先を指す。\n"
+    "target_month のみを対象月として明記。month_selection_note を冒頭に反映。\n"
+    "accounting_focus=expenses なら経費中心、sales なら売上中心。根拠のない数値は出さない。\n"
     "ユーザーの質問に、簡潔な日本語で答えてください。箇条書き可。"
 )
 

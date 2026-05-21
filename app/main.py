@@ -304,7 +304,7 @@ class AskBody(BaseModel):
 
 @app.post("/ask")
 def post_ask(body: AskBody, repo: RepoDep):
-    month_res = resolve_target_month(body.question, repo)
+    month_res = resolve_target_month(body.question, repo, chat_key=None)
     month = month_res.month
     try:
         structured = run_rules_ask(body.question, repo, month)
@@ -329,7 +329,7 @@ def post_ask(body: AskBody, repo: RepoDep):
                     body.question, ctx, mode="conversation"
                 )
             else:
-                ctx = build_accounting_context(repo, body.question)
+                ctx = build_accounting_context(repo, body.question, chat_key=None)
                 answer = answer_with_openai(
                     body.question, ctx, mode="accounting"
                 )

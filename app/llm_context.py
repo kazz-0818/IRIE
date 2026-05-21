@@ -4,8 +4,10 @@ from datetime import date
 from typing import Any
 
 from app.month_resolve import resolve_target_month
+from app.nl_router import detect_accounting_focus
 from app.services import SheetRepository, serialize_payable, serialize_receivable
 from app.sheet_preview import build_raw_previews_for_llm, structured_data_is_sparse
+from app.text_normalize import normalize_user_question
 
 _CONVERSATION_CAPABILITIES: tuple[str, ...] = (
     "今月の売上・経費・利益（「今月どう？」「売上は？」）",
@@ -21,7 +23,8 @@ def build_conversation_context(
     intent: str,
 ) -> dict[str, Any]:
     """挨拶・雑談・曖昧な質問向け（生グリッドは送らずトークン節約）。"""
-    month_res = resolve_target_month(question, repo)
+    q = normalize_user_question(question)
+    month_res = resolve_target_month(q, repo)
     month = month_res.month
     today = date.today()
     summary = None
@@ -55,10 +58,17 @@ def build_conversation_context(
     return ctx
 
 
-def build_accounting_context(repo: SheetRepository, question: str) -> dict[str, Any]:
+def build_accounting_context(
+    repo: SheetRepository,
+    question: str,
+    *,
+    chat_key: str | None = None,
+) -> dict[str, Any]:
     """OpenAI 用 JSON: ルール抽出 + 各タブの生グリッド（BRANDVOX 実シート向け）。"""
-    month_res = resolve_target_month(question, repo)
+    q = normalize_user_question(question)
+    month_res = resolve_target_month(q, repo, chat_key=chat_key)
     month = month_res.month
+    focus = detect_accounting_focus(q)
     today = date.today()
     summary = None
     if repo.resolved_sheets.get("summary"):
@@ -88,11 +98,14 @@ def build_accounting_context(repo: SheetRepository, question: str) -> dict[str, 
         :25
     ]
 
-    sales_snap = repo.month_sales_snapshot(month) if repo.resolved_sheets.get("summary") else None
+    breakdown = (
+        repo.month_breakdown_snapshot(month) if repo.resolved_sheets.get("summary") else None
+    )
 
     rules_block: dict[str, Any] = {
         "monthly_summary_row": summ_dict,
-        "authoritative_month_sales": sales_snap,
+        "authoritative_month_breakdown": breakdown,
+        "authoritative_month_sales": breakdown,
         "unpaid_receivables": unpaid,
         "receivables_due_today": due_today,
         "overdue_unpaid_receivables": overdue,
@@ -103,15 +116,17 @@ def build_accounting_context(repo: SheetRepository, question: str) -> dict[str, 
     sparse = structured_data_is_sparse(rules_block)
 
     month_hint = (
-        "authoritative_month_sales がある場合はそれを最優先し、"
-        "回答の対象月は必ず JSON の target_month（例: 2026-04 → 2026年4月）と一致させること。"
-        "month_selection_note を冒頭1文で反映すること。"
-        "target_month と異なる月の数字を述べないこと。"
+        "authoritative_month_breakdown がある場合は raw グリッドより最優先。"
+        "数値がある項目は「シート上では確認できません」と言わない。"
+        "回答の対象月は必ず target_month（例: 2026-04 → 2026年4月）。"
+        "month_selection_note を冒頭1文で反映。"
+        "accounting_focus が expenses なら経費内訳を、sales なら売上を中心に答える。"
     )
     ctx: dict[str, Any] = {
         "response_mode": "accounting",
         "as_of": today.isoformat(),
         "target_month": month,
+        "accounting_focus": focus,
         "resolved_sheets": dict(repo.resolved_sheets),
         "sheet_warnings": list(repo.warnings),
         "interpretation_hint": (

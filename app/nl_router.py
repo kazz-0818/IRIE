@@ -6,12 +6,13 @@ from typing import Any
 
 from app.parse_util import extract_month_from_question
 from app.services import SheetRepository
+from app.text_normalize import normalize_user_question
+
 _GREETING_RE = re.compile(
     r"^(こんにちは|こんちゃ|こんばんは|おはよう|おはよ|はろー|やあ|よう|hello|hi)\s*[!！。、,]*\s*$",
     re.IGNORECASE,
 )
 
-# 経理キーワードが無いときだけ雑談扱い（あれば先に summary / receivables 等へ）
 _ACCOUNTING_HINTS: tuple[str, ...] = (
     "売上",
     "経費",
@@ -42,7 +43,6 @@ _ACCOUNTING_HINTS: tuple[str, ...] = (
     "receivable",
     "summary",
     "pl",
-    "損益",
 )
 
 _CASUAL_HINTS: tuple[str, ...] = (
@@ -85,7 +85,7 @@ _CASUAL_HINTS: tuple[str, ...] = (
 
 
 def extract_month(question: str) -> str | None:
-    return extract_month_from_question(question)
+    return extract_month_from_question(normalize_user_question(question))
 
 
 def _has(q: str, *keys: str) -> bool:
@@ -93,20 +93,20 @@ def _has(q: str, *keys: str) -> bool:
 
 
 def has_accounting_intent(q: str) -> bool:
-    return _has(q, *_ACCOUNTING_HINTS)
+    return _has(normalize_user_question(q), *_ACCOUNTING_HINTS)
 
 
 def is_casual_chat(q: str) -> bool:
     """経理以外の挨拶・雑談・自己紹介系（短いメッセージ向け）。"""
-    if has_accounting_intent(q):
+    nq = normalize_user_question(q)
+    if has_accounting_intent(nq):
         return False
-    if _GREETING_RE.match(q):
+    if _GREETING_RE.match(nq):
         return True
-    if _has(q, *_CASUAL_HINTS):
+    if _has(nq, *_CASUAL_HINTS):
         return True
-    # 短い挨拶混じり（「こんにちは、よろしく」等）
-    if len(q) <= 48 and _has(
-        q,
+    if len(nq) <= 48 and _has(
+        nq,
         "こんにちは",
         "こんばんは",
         "おはよう",
@@ -117,19 +117,64 @@ def is_casual_chat(q: str) -> bool:
     return False
 
 
-def route_question(question: str, repo: SheetRepository) -> dict[str, Any]:
-    """意図のざっくり分類。summary の月次行取得だけは run_rules_ask に任せ、ここでは呼ばない。"""
-    q = question.strip()
-    month = extract_month(q) or f"{date.today().year:04d}-{date.today().month:02d}"
+def _is_monthly_pl_query(q: str) -> bool:
+    """事業実績表の月次（売上・経費・利益）。支払予定タブとは別。"""
+    nq = normalize_user_question(q)
+    if extract_month_from_question(nq):
+        if _has(nq, "売上", "経費", "利益", "収支", "損益", "黒字", "赤字", "粗利"):
+            return True
+    if _has(
+        nq,
+        "売上は",
+        "売上いくら",
+        "今月の売上",
+        "今月どう",
+        "今月のBRANDVOX",
+        "今月の状況",
+        "収支は",
+        "収支",
+        "黒字",
+        "赤字",
+        "利益出てる",
+        "粗利",
+        "経費いくら",
+        "経費は",
+        "経費？",
+        "経費 ",
+        "利益は",
+        "利益？",
+        "損益",
+        "PL",
+    ):
+        return True
+    if _has(nq, "売上", "summary") and not _has(nq, "入金予定", "支払い予定", "未入金"):
+        return True
+    return False
 
-    # 経理キーワードが無ければ雑談優先（Sheets 読み取りを避ける）
+
+def detect_accounting_focus(q: str) -> str | None:
+    nq = normalize_user_question(q)
+    if _has(nq, "経費") and not _has(nq, "売上", "利益"):
+        return "expenses"
+    if _has(nq, "売上", "売り上"):
+        return "sales"
+    if _has(nq, "利益", "粗利", "黒字", "赤字"):
+        return "profit"
+    return None
+
+
+def route_question(question: str, repo: SheetRepository) -> dict[str, Any]:
+    """意図のざっくり分類。"""
+    q = normalize_user_question(question.strip())
+    month = extract_month(q) or f"{date.today().year:04d}-{date.today().month:02d}"
+    focus = detect_accounting_focus(q)
+
     if not has_accounting_intent(q):
         if _GREETING_RE.match(q):
             return {"intent": "greeting", "month": month}
         if is_casual_chat(q):
             return {"intent": "casual_chat", "month": month}
 
-    # --- レポート系（先に判定） ---
     if _has(
         q,
         "まとめて",
@@ -139,33 +184,11 @@ def route_question(question: str, repo: SheetRepository) -> dict[str, Any]:
         "今月の状況まとめ",
         "サマリー出して",
     ):
-        return {"intent": "summary", "month": month}
+        return {"intent": "summary", "month": month, "focus": focus}
 
-    # --- 売上・収支系 ---
-    if _has(
-        q,
-        "今月どう",
-        "今月のBRANDVOX",
-        "今月の状況",
-        "売上は",
-        "売上いくら",
-        "今月の売上",
-        "収支は",
-        "収支",
-        "黒字",
-        "赤字",
-        "利益出てる",
-        "粗利",
-        "経費いくら",
-        "経費は",
-        "経費 ",
-        "利益は",
-        "PL",
-        "損益",
-    ):
-        return {"intent": "summary", "month": month}
+    if _is_monthly_pl_query(q):
+        return {"intent": "summary", "month": month, "focus": focus}
 
-    # --- 入金系 ---
     if _has(
         q,
         "今日入金",
@@ -202,7 +225,6 @@ def route_question(question: str, repo: SheetRepository) -> dict[str, Any]:
         rows = [r for r in repo.load_receivables() if r.is_unpaid()]
         return {"intent": "unpaid", "count": len(rows)}
 
-    # --- 支払・経費系 ---
     if _has(
         q,
         "今日払う",
@@ -211,10 +233,10 @@ def route_question(question: str, repo: SheetRepository) -> dict[str, Any]:
         "支払い予定",
         "支払予定",
         "経費一覧",
+        "経費詳細",
         "未払",
         "買掛",
         "payable",
-        "経費",
     ):
         return {"intent": "payables", "count": len(repo.load_payables())}
 
@@ -227,18 +249,6 @@ def route_question(question: str, repo: SheetRepository) -> dict[str, Any]:
         and not any(k in q for k in ("入金確認", "入金済", "振込済", "支払いました"))
     ):
         return {"intent": "receivables", "count": len(repo.load_receivables())}
-
-    if any(
-        k in q
-        for k in (
-            "月次",
-            "レポート",
-            "サマリー",
-            "売上",
-            "summary",
-        )
-    ):
-        return {"intent": "summary", "month": month}
 
     if is_casual_chat(q):
         return {"intent": "casual_chat", "month": month}
