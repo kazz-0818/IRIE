@@ -3,12 +3,17 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from app.nl_router import extract_month, route_question
+from app.month_resolve import resolve_target_month_str
+from app.nl_router import route_question
 from app.services import SheetRepository, serialize_payable, serialize_receivable
 
 
-def month_from_question(question: str) -> str:
-    return extract_month(question) or f"{date.today().year:04d}-{date.today().month:02d}"
+def month_from_question(question: str, repo: SheetRepository | None = None) -> str:
+    """後方互換。repo があればシート実績を考慮した対象月。"""
+    if repo is not None:
+        return resolve_target_month_str(question, repo)
+    today = date.today()
+    return f"{today.year:04d}-{today.month:02d}"
 
 
 def _sheet_meta(repo: SheetRepository) -> dict[str, Any]:

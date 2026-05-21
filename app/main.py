@@ -7,7 +7,7 @@ from typing import Annotated, Any, Literal
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.ask_service import month_from_question, run_rules_ask
+from app.ask_service import run_rules_ask
 from app.audit_supabase import log_audit
 from app.config import get_settings
 from app.deployment_info import deployment_revision
@@ -15,6 +15,7 @@ from app.line_routes import handle_line_webhook
 from app.line_routes import router as line_router
 from app.llm_ask import answer_with_openai
 from app.llm_context import build_accounting_context, build_conversation_context
+from app.month_resolve import resolve_default_api_month, resolve_target_month
 from app.parse_util import is_paid_status
 from app.services import (
     SheetRepository,
@@ -117,10 +118,10 @@ def debug_sheets(debug: bool = Query(False, description="true で spreadsheet_id
         }
 
 
-def _month_or_default(month: str | None) -> str:
+def _month_or_default(month: str | None, repo: SheetRepository) -> str:
     if month:
         return month
-    return f"{date.today().year:04d}-{date.today().month:02d}"
+    return resolve_default_api_month(repo)
 
 
 def _parse_iso(d: str | None) -> date | None:
@@ -139,9 +140,9 @@ def _parse_iso(d: str | None) -> date | None:
 @app.get("/summary")
 def get_summary(
     repo: RepoDep,
-    month: str | None = Query(None, description="YYYY-MM（省略時は当月）"),
+    month: str | None = Query(None, description="YYYY-MM（省略時は最新実績月）"),
 ):
-    m = _month_or_default(month)
+    m = _month_or_default(month, repo)
     s = repo.summary_for_month(m)
     if not s:
         return {
@@ -245,13 +246,13 @@ def integrations_status() -> dict[str, bool | str]:
 
 
 class MonthlyReportBody(BaseModel):
-    month: str | None = Field(None, description="YYYY-MM（省略時は当月）")
+    month: str | None = Field(None, description="YYYY-MM（省略時は最新実績月）")
     audience: Audience = "internal"
 
 
 @app.post("/reports/monthly")
 def post_monthly_report(body: MonthlyReportBody, repo: RepoDep):
-    m = _month_or_default(body.month)
+    m = _month_or_default(body.month, repo)
     summary = repo.summary_for_month(m)
     text = monthly_report_text(m, summary, body.audience)
     return {"month": m, "audience": body.audience, "text": text}
@@ -303,7 +304,8 @@ class AskBody(BaseModel):
 
 @app.post("/ask")
 def post_ask(body: AskBody, repo: RepoDep):
-    month = month_from_question(body.question)
+    month_res = resolve_target_month(body.question, repo)
+    month = month_res.month
     try:
         structured = run_rules_ask(body.question, repo, month)
     except Exception as e:
@@ -311,19 +313,23 @@ def post_ask(body: AskBody, repo: RepoDep):
         return {"mode": "error", "message": format_sheets_user_message(e)}
     log_audit(
         "ask",
-        {"intent": structured.get("intent"), "month": month},
+        {
+            "intent": structured.get("intent"),
+            "month": month,
+            "target_month_source": month_res.source,
+        },
     )
     intent = structured.get("intent", "unknown")
     s = get_settings()
     if s.openai_api_key:
         try:
             if intent in _CONVERSATION_INTENTS:
-                ctx = build_conversation_context(repo, month, intent)
+                ctx = build_conversation_context(repo, body.question, intent)
                 answer = answer_with_openai(
                     body.question, ctx, mode="conversation"
                 )
             else:
-                ctx = build_accounting_context(repo, month)
+                ctx = build_accounting_context(repo, body.question)
                 answer = answer_with_openai(
                     body.question, ctx, mode="accounting"
                 )
@@ -332,6 +338,8 @@ def post_ask(body: AskBody, repo: RepoDep):
                 "response_kind": (
                     "conversation" if intent in _CONVERSATION_INTENTS else "accounting"
                 ),
+                "target_month": month,
+                "target_month_source": month_res.source,
                 "answer": _reading_scope_notice(repo) + answer,
                 "structured": structured,
             }

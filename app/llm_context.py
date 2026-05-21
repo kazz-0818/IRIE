@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from app.month_resolve import resolve_target_month
 from app.services import SheetRepository, serialize_payable, serialize_receivable
 from app.sheet_preview import build_raw_previews_for_llm, structured_data_is_sparse
 
@@ -16,10 +17,12 @@ _CONVERSATION_CAPABILITIES: tuple[str, ...] = (
 
 def build_conversation_context(
     repo: SheetRepository,
-    month: str,
+    question: str,
     intent: str,
 ) -> dict[str, Any]:
     """挨拶・雑談・曖昧な質問向け（生グリッドは送らずトークン節約）。"""
+    month_res = resolve_target_month(question, repo)
+    month = month_res.month
     today = date.today()
     summary = None
     if repo.resolved_sheets.get("summary"):
@@ -33,7 +36,7 @@ def build_conversation_context(
             "profit_jpy": summary.profit,
         }
 
-    return {
+    ctx: dict[str, Any] = {
         "response_mode": "conversation",
         "intent": intent,
         "as_of": today.isoformat(),
@@ -48,10 +51,14 @@ def build_conversation_context(
             "経理の質問には喜んで答える。"
         ),
     }
+    ctx.update(month_res.as_context())
+    return ctx
 
 
-def build_accounting_context(repo: SheetRepository, month: str) -> dict[str, Any]:
+def build_accounting_context(repo: SheetRepository, question: str) -> dict[str, Any]:
     """OpenAI 用 JSON: ルール抽出 + 各タブの生グリッド（BRANDVOX 実シート向け）。"""
+    month_res = resolve_target_month(question, repo)
+    month = month_res.month
     today = date.today()
     summary = None
     if repo.resolved_sheets.get("summary"):
@@ -92,7 +99,13 @@ def build_accounting_context(repo: SheetRepository, month: str) -> dict[str, Any
     raw_previews = build_raw_previews_for_llm(repo)
     sparse = structured_data_is_sparse(rules_block)
 
-    return {
+    month_hint = (
+        "回答の対象月は target_month の列のみ使用すること。"
+        "month_column_label があればその列見出しと数値を対応づけること。"
+        "target_month と列見出しが食い違う場合は数値の列を優先し、"
+        "対象月を正直に述べること（例: 5月列が空で4月列を読んだ場合は4月の実績と明記）。"
+    )
+    ctx: dict[str, Any] = {
         "response_mode": "accounting",
         "as_of": today.isoformat(),
         "target_month": month,
@@ -102,10 +115,12 @@ def build_accounting_context(repo: SheetRepository, month: str) -> dict[str, Any
             "BRANDVOX 経理ファイルは LIRA 専用列名と一致しないことがあります。"
             "rules_extracted が空でも raw_sheet_previews の grid から"
             "数値・日付を読んで回答してください。"
+            f" {month_hint}"
             if sparse
             else (
                 "rules_extracted は列名マッチ時の構造化データです。"
                 "不足があれば raw_sheet_previews を参照してください。"
+                f" {month_hint}"
             )
         ),
         "rules_extracted": rules_block,
@@ -113,3 +128,5 @@ def build_accounting_context(repo: SheetRepository, month: str) -> dict[str, Any
         # 後方互換: トップレベルにも同じキーを残す
         **rules_block,
     }
+    ctx.update(month_res.as_context())
+    return ctx

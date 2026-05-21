@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 
-from app.ask_service import month_from_question, run_rules_ask
+from app.ask_service import run_rules_ask
+from app.month_resolve import resolve_target_month_str
 from app.config import get_settings
 from app.llm_ask import answer_with_openai
 from app.llm_context import build_accounting_context, build_conversation_context
@@ -89,7 +90,7 @@ def answer_for_user(question: str, repo: SheetRepository | None = None) -> str:
     try:
         if repo is None:
             repo = SheetRepository()
-        month = month_from_question(question)
+        month = resolve_target_month_str(question, repo)
         structured = run_rules_ask(question, repo, month)
         intent = structured.get("intent", "unknown")
         s = get_settings()
@@ -104,10 +105,10 @@ def answer_for_user(question: str, repo: SheetRepository | None = None) -> str:
             )
         try:
             if intent in _CONVERSATION_INTENTS:
-                ctx = build_conversation_context(repo, month, intent)
+                ctx = build_conversation_context(repo, question, intent)
                 ans = answer_with_openai(question, ctx, mode="conversation")
             else:
-                ctx = build_accounting_context(repo, month)
+                ctx = build_accounting_context(repo, question)
                 ans = answer_with_openai(question, ctx, mode="accounting")
             return _partial_notice(repo) + ans
         except Exception:
