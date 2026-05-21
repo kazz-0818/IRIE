@@ -43,7 +43,9 @@ class TargetMonthResolution:
 
 def _selection_note(res: TargetMonthResolution) -> str:
     if res.source == "explicit":
-        return "質問に含まれる年月を対象月にしました。"
+        return (
+            "質問に含まれる年月（4月・先月・来月 など）を対象月にしました。"
+        )
     if res.source == "calendar_current":
         return "「今月」「当月」の指定があるため、カレンダー上の当月を対象にしました。"
     if res.source == "latest_sheet_data":

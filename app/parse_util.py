@@ -52,11 +52,32 @@ def parse_date(raw: Any) -> date | None:
     return None
 
 
+def _month_offset(ref: date, delta_months: int) -> str:
+    y, mo = ref.year, ref.month + delta_months
+    while mo > 12:
+        mo -= 12
+        y += 1
+    while mo < 1:
+        mo += 12
+        y -= 1
+    return f"{y:04d}-{mo:02d}"
+
+
+# 長い語句を先に（「先月」が「先」に誤マッチしないよう先々月を優先）
+_RELATIVE_MONTH_PHRASES: tuple[tuple[tuple[str, ...], int], ...] = (
+    (("先々月", "一昨月"), -2),
+    (("再来月",), 2),
+    (("先月", "前月", "昨月"), -1),
+    (("来月", "翌月", "次月"), 1),
+    (("今月", "当月"), 0),
+)
+
+
 def extract_month_from_question(
     question: str,
     ref: date | None = None,
 ) -> str | None:
-    """質問から YYYY-MM を抽出（「4月の売上」「2026年4月」等）。"""
+    """質問から YYYY-MM を抽出（「4月」「先月」「2026年4月」等）。"""
     ref = ref or date.today()
     q = question.strip()
     if not q:
@@ -74,6 +95,9 @@ def extract_month_from_question(
             if not m2.group(1) and mo > ref.month:
                 y -= 1
             return f"{y:04d}-{mo:02d}"
+    for keys, delta in _RELATIVE_MONTH_PHRASES:
+        if any(k in q for k in keys):
+            return _month_offset(ref, delta)
     return None
 
 

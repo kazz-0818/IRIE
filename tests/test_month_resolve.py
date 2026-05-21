@@ -56,6 +56,19 @@ def test_explicit_month() -> None:
     assert res.source == "explicit"
 
 
+@patch("app.month_resolve._calendar_month_str", return_value="2026-05")
+def test_sensatsu_explicit_month(_cal: MagicMock) -> None:
+    repo = _repo_with_months(
+        [
+            MonthlySummaryRow("2026-04", 1_013_542, 20, 180, None),
+            MonthlySummaryRow("2026-05", 0, 0, 0, None),
+        ]
+    )
+    res = resolve_target_month("先月の売上", repo)
+    assert res.month == "2026-04"
+    assert res.source == "explicit"
+
+
 def test_explicit_shorthand_month() -> None:
     repo = _repo_with_months(
         [
