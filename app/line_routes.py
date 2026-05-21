@@ -82,8 +82,11 @@ def _question_from_event(
     else:
         q = text
 
-    if not q and respond_reason == "mention":
-        return "（メンション）"
+    if not q:
+        if respond_reason == "mention":
+            return "（メンション）"
+        if respond_reason == "name_call":
+            return "（名前呼び）"
     return q
 
 

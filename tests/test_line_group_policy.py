@@ -8,6 +8,7 @@ from app.line_group_policy import (
     strip_line_mentions,
     text_calls_bot_name,
 )
+from app.line_routes import _question_from_event
 
 
 def test_direct_chat_always_responds() -> None:
@@ -87,3 +88,35 @@ def test_text_calls_bot_ascii_word_boundary() -> None:
     aliases = ("LIRA",)
     assert text_calls_bot_name("LIRA お疲れ", aliases) is True
     assert text_calls_bot_name("こんにちは", aliases) is False
+
+
+def test_name_only_becomes_placeholder_question() -> None:
+    ev = {
+        "source": {"type": "group", "groupId": "G1"},
+        "message": {"type": "text", "text": "りら"},
+    }
+    aliases = parse_name_aliases(None)
+    ok, reason = should_respond_line_event(ev, aliases=aliases)
+    assert ok and reason == "name_call"
+    q = _question_from_event(ev, aliases=aliases, respond_reason=reason)
+    assert q == "（名前呼び）"
+
+
+def test_mention_only_becomes_placeholder_question() -> None:
+    ev = {
+        "source": {"type": "group", "groupId": "G1"},
+        "message": {
+            "type": "text",
+            "text": "@LIRA",
+            "mention": {
+                "mentionees": [
+                    {"index": 0, "length": 5, "userId": "B1", "type": "user", "isSelf": True},
+                ]
+            },
+        },
+    }
+    aliases = parse_name_aliases(None)
+    ok, reason = should_respond_line_event(ev, aliases=aliases)
+    assert ok and reason == "mention"
+    q = _question_from_event(ev, aliases=aliases, respond_reason=reason)
+    assert q == "（メンション）"
