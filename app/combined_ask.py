@@ -86,13 +86,21 @@ def answer_for_user(question: str, repo: SheetRepository | None = None) -> str:
         if structured.get("intent") == "greeting":
             return _fallback_text(structured)
         s = get_settings()
-        if s.openai_api_key:
-            try:
-                ctx = build_accounting_context(repo, month)
-                ans = answer_with_openai(question, ctx)
-                return _partial_notice(repo) + ans
-            except Exception:
-                log.exception("OpenAI 応答失敗、フォールバックします")
+        if not s.openai_api_key:
+            return (
+                _partial_notice(repo)
+                + "（ルールのみ）経理シートの列レイアウトが LIRA 既定と異なるため、"
+                "数値の自動読み取りができていません。\n"
+                "Render の Environment に OPENAI_API_KEY を設定すると、"
+                "スプレッドシートの生データを LLM が読んで回答します。\n\n"
+                + _fallback_text(structured)
+            )
+        try:
+            ctx = build_accounting_context(repo, month)
+            ans = answer_with_openai(question, ctx)
+            return _partial_notice(repo) + ans
+        except Exception:
+            log.exception("OpenAI 応答失敗、フォールバックします")
         return _partial_notice(repo) + _fallback_text(structured)
     except Exception as e:
         log.exception("LINE / answer_for_user: Sheets または処理エラー")
