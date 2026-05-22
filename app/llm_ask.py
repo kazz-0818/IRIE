@@ -65,6 +65,9 @@ def answer_with_openai(
     client = OpenAI(api_key=s.openai_api_key)
     payload = json.dumps(context, ensure_ascii=False, default=str)
     user = f"質問:\n{question}\n\n参照データ (JSON):\n{payload}"
+    cust = (context.get("veriora_customer_context") or "").strip()
+    if cust:
+        user = f"{cust}\n\n---\n\n{user}"
 
     resp = client.chat.completions.create(
         model=s.openai_model,

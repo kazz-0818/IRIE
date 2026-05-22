@@ -11,6 +11,8 @@ from app.ask_service import run_rules_ask
 from app.audit_supabase import log_audit
 from app.config import get_settings
 from app.deployment_info import deployment_revision
+from app.audit_supabase import _supabase_client
+from app.customers.ask_resolve import resolve_customer_for_ask
 from app.line_routes import handle_line_webhook
 from app.line_routes import router as line_router
 from app.llm_ask import answer_with_openai
@@ -300,6 +302,9 @@ def post_overdue_reminder(body: RowSelection, repo: RepoDep):
 
 class AskBody(BaseModel):
     question: str = Field(..., min_length=1)
+    manual_customer_id: str | None = Field(default=None, description="既存 customer UUID")
+    line_user_id: str | None = Field(default=None, description="LINE userId（lira_line）")
+    email: str | None = Field(default=None, description="customers.email 照合")
 
 
 @app.post("/ask")
@@ -321,18 +326,25 @@ def post_ask(body: AskBody, repo: RepoDep):
     )
     intent = structured.get("intent", "unknown")
     s = get_settings()
+    customer_id, customer_context = resolve_customer_for_ask(
+        _supabase_client(),
+        manual_customer_id=body.manual_customer_id,
+        line_user_id=body.line_user_id,
+        email=body.email,
+    )
     if s.openai_api_key:
         try:
             if intent in _CONVERSATION_INTENTS:
                 ctx = build_conversation_context(repo, body.question, intent)
-                answer = answer_with_openai(
-                    body.question, ctx, mode="conversation"
-                )
             else:
                 ctx = build_accounting_context(repo, body.question, chat_key=None)
-                answer = answer_with_openai(
-                    body.question, ctx, mode="accounting"
-                )
+            if customer_context.strip():
+                ctx["veriora_customer_context"] = customer_context
+            answer = answer_with_openai(
+                body.question,
+                ctx,
+                mode="conversation" if intent in _CONVERSATION_INTENTS else "accounting",
+            )
             return {
                 "mode": "openai",
                 "response_kind": (
@@ -340,6 +352,7 @@ def post_ask(body: AskBody, repo: RepoDep):
                 ),
                 "target_month": month,
                 "target_month_source": month_res.source,
+                "customer_id": customer_id,
                 "answer": _reading_scope_notice(repo) + answer,
                 "structured": structured,
             }
