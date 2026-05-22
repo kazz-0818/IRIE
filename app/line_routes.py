@@ -12,7 +12,11 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
-from app.audit_supabase import log_audit
+from app.audit_supabase import log_audit, _supabase_client
+from app.services.customers.resolve import (
+    build_customer_context_prompt,
+    resolve_customer_from_line,
+)
 from app.combined_ask import answer_for_user
 from app.config import get_settings
 from app.line_caller_address import prefix_reply_with_caller
@@ -181,6 +185,23 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
             continue
 
         q = enrich_question_with_quote(q, quote)
+
+        line_user_id = source.get("userId")
+        if isinstance(line_user_id, str) and line_user_id.strip():
+            sb = _supabase_client()
+            if sb is not None:
+                try:
+                    cid = resolve_customer_from_line(
+                        sb,
+                        line_user_id.strip(),
+                        None,
+                    )
+                    if cid:
+                        block = build_customer_context_prompt(sb, cid)
+                        if block:
+                            q = f"{block}\n\n---\n\n{q}"
+                except Exception:
+                    log.debug("customer context resolve skipped", exc_info=True)
 
         caller_display_name: str | None = None
         if reason in ("mention", "name_call"):
