@@ -1,6 +1,7 @@
 """Veliora 共通顧客マスター（LIRA / ベガパンク）— Supabase 経由の薄い接続。
 
 接続: `app/line_routes.py` の LINE webhook（1:1 / グループ応答前）。
+`app/services.py` とパッケージ名が衝突するため `app/customers/` に配置。
 """
 
 from __future__ import annotations

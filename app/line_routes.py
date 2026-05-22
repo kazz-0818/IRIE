@@ -13,7 +13,7 @@ from fastapi import APIRouter, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
 from app.audit_supabase import log_audit, _supabase_client
-from app.services.customers.resolve import (
+from app.customers.resolve import (
     build_customer_context_prompt,
     resolve_customer_from_line,
 )
