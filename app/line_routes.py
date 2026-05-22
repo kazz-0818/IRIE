@@ -16,6 +16,7 @@ from app.audit_supabase import log_audit
 from app.combined_ask import answer_for_user
 from app.config import get_settings
 from app.line_caller_address import prefix_reply_with_caller
+from app.rits_ingest import record_line_exchange_to_rits
 from app.line_group_policy import (
     normalize_group_question,
     parse_name_aliases,
@@ -200,6 +201,12 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
             if reason in ("mention", "name_call"):
                 text_out = prefix_reply_with_caller(text_out, caller_display_name)
             await _reply_line(reply_token, text_out, chat_key=chat_key)
+            group_id = source.get("groupId") if source_type == "group" else None
+            record_line_exchange_to_rits(
+                user_text=q,
+                agent_reply=text_out,
+                group_id=group_id if isinstance(group_id, str) else None,
+            )
         except Exception as e:
             log.exception("LINE webhook 処理エラー")
             log.error(
