@@ -9,6 +9,7 @@ from app.llm_context import build_accounting_context, build_conversation_context
 from app.month_resolve import resolve_target_month_str
 from app.services import SheetRepository
 from app.sheets_errors import format_sheets_user_message_with_retry_hint
+from app.capabilities_help import format_lira_capabilities_reply, is_capabilities_help_question
 from app.text_normalize import normalize_user_question
 
 log = logging.getLogger(__name__)
@@ -93,6 +94,8 @@ def answer_for_user(
     chat_key: str | None = None,
 ) -> str:
     """人が読む自然文。OpenAI が使えなければルールベースの短文。"""
+    if is_capabilities_help_question(question):
+        return format_lira_capabilities_reply()
     try:
         if repo is None:
             repo = SheetRepository()

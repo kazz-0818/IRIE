@@ -10,10 +10,11 @@ from app.sheet_preview import build_raw_previews_for_llm, structured_data_is_spa
 from app.text_normalize import normalize_user_question
 
 _CONVERSATION_CAPABILITIES: tuple[str, ...] = (
-    "今月の売上・経費・利益（「今月どう？」「売上は？」）",
-    "入金予定・未入金（「入金予定」「未入金ある？」）",
-    "支払・経費（「支払い予定」「経費いくら？」）",
-    "月次のざっくり相談（「まとめて」「今月の状況」）",
+    "今月の売上・経費・利益の説明（例: 今月どう？）",
+    "入金予定・未入金の確認",
+    "支払い・経費の金額や一覧",
+    "経理用の表の数字を読んで答える",
+    "雑談や軽い相談",
 )
 
 
