@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.deployment_info import deployment_revision
 from app.audit_supabase import _supabase_client
 from app.customers.ask_resolve import resolve_customer_for_ask
+from app.rits_ingest import send_agent_log_to_rits
 from app.line_routes import handle_line_webhook
 from app.line_routes import router as line_router
 from app.llm_ask import answer_with_openai
@@ -345,6 +346,14 @@ def post_ask(body: AskBody, repo: RepoDep):
                 ctx,
                 mode="conversation" if intent in _CONVERSATION_INTENTS else "accounting",
             )
+            full_answer = _reading_scope_notice(repo) + answer
+            send_agent_log_to_rits(
+                user_message=body.question,
+                agent_reply=full_answer,
+                intent=intent,
+                source="ask",
+                metadata={"customer_id": customer_id} if customer_id else {},
+            )
             return {
                 "mode": "openai",
                 "response_kind": (
@@ -353,7 +362,7 @@ def post_ask(body: AskBody, repo: RepoDep):
                 "target_month": month,
                 "target_month_source": month_res.source,
                 "customer_id": customer_id,
-                "answer": _reading_scope_notice(repo) + answer,
+                "answer": full_answer,
                 "structured": structured,
             }
         except Exception:
