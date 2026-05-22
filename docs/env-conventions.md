@@ -19,12 +19,14 @@
 4. **インフラが注入する変数**はそのまま利用可（例: `PORT`, `NODE_ENV`, `RENDER_EXTERNAL_URL`）。無理に `VERIORA_` を付けない。
 5. **新規キーから本規約を適用**する。既存キーは **非推奨（deprecated）として文書化**しつつ残す。
 
-## 互換 alias（Phase 3 で実装予定）
+## 互換 alias（Phase 3 — 実装済み）
 
 読み込み優先順の例:
 
-1. `NEAR_LINE_CHANNEL_SECRET` があればそれを使用
-2. なければ従来の `LINE_CHANNEL_SECRET`（同一デプロイ内で後方互換）
+1. **canonical**（Zod が参照するキー、例: `LINE_CHANNEL_SECRET`）があればそれを使用
+2. なければ **legacy / 新規推奨キー**（例: `NEAR_LINE_CHANNEL_SECRET`）を canonical にコピーしてから parse
+
+実装: 各リポの `src/config/envAlias.ts`（LIRA: `app/config_env_alias.py`）。legacy 使用時は起動ログに `deprecated` 警告。
 
 **原則**: 本番の `.env` / Render のダッシュボードを一斉リネームしないでもデプロイできること。
 
@@ -87,6 +89,14 @@
 ### Cron / 内部ジョブ
 
 - `VERIORA_CRON_SECRET` または既存の `CRON_SECRET` を維持し alias
+
+### LINE 横断ログ（NEAR / SERA）
+
+- `VERIORA_CANONICAL_LINE_LOG` — `veriora.messages` へ書き込み（既定 ON）
+- `VERIORA_LEGACY_VELIORA_LINE_LOG` — `veliora.line_message_events` へ書き込み（既定 ON、検証後 `false` で停止）
+- `VERIORA_CORE_DUAL_WRITE` — **非推奨**。`true` のとき canonical を強制 ON（`VERIORA_CANONICAL_LINE_LOG=false` 時のみ有効）
+
+詳細: [`supabase-simplification.md`](supabase-simplification.md)
 
 ## 非推奨（deprecated）の扱い
 

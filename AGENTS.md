@@ -30,7 +30,7 @@
 - LIRA（Python）: `app/agents/` + `app/agents/{agentKey}/`
 - Canonical DB: `src/services/supabase/`（LINE ログ: `VERIORA_CANONICAL_LINE_LOG` / `VERIORA_LEGACY_VELIORA_LINE_LOG`、[`supabase-simplification.md`](docs/supabase-simplification.md)）
 
-**現状**: 実行経路からは参照しない前提で追加されています（統一基盤の置き場）。Phase 3 以降で `getEnv` やルーティングから段階的に接続します。
+**現状**: **LIRA** は `app/agents/registry.py` を正とする。TS リポ（NEAR / SERA 等）は `src/agents/registry.ts` で handoff や config から段階接続済み（[`docs/veriora-architecture.md`](docs/veriora-architecture.md)）。
 
 ## 禁止事項（エージェント・人間共通）
 
