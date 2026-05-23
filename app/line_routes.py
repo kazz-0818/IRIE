@@ -20,7 +20,7 @@ from app.customers.resolve import (
 from app.combined_ask import answer_for_user
 from app.config import get_settings
 from app.line_caller_address import prefix_reply_with_caller
-from app.rits_ingest import record_line_exchange_to_rits
+from app.rits_ingest import record_group_observe_to_rits, record_line_exchange_to_rits
 from app.line_group_policy import (
     normalize_group_question,
     parse_name_aliases,
@@ -173,6 +173,22 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
                 reason,
                 source.get("type"),
             )
+            source_type = source.get("type") or ""
+            if source_type in ("group", "room"):
+                raw_text = (msg.get("text") or "").strip()
+                if raw_text:
+                    uid = source.get("userId")
+                    actor = uid.strip() if isinstance(uid, str) and uid.strip() else None
+                    gid = source.get("groupId") if source_type == "group" else None
+                    rid = source.get("roomId") if source_type == "room" else None
+                    record_group_observe_to_rits(
+                        user_text=raw_text,
+                        skip_reason=reason,
+                        group_id=gid if isinstance(gid, str) else None,
+                        room_id=rid if isinstance(rid, str) else None,
+                        line_source_type=source_type,
+                        actor_user_id=actor,
+                    )
             continue
 
         reply_token = ev.get("replyToken")
@@ -222,11 +238,16 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
             if reason in ("mention", "name_call"):
                 text_out = prefix_reply_with_caller(text_out, caller_display_name)
             await _reply_line(reply_token, text_out, chat_key=chat_key)
-            group_id = source.get("groupId") if source_type == "group" else None
+            gid = source.get("groupId") if source_type == "group" else None
+            rid = source.get("roomId") if source_type == "room" else None
+            uid = source.get("userId")
             record_line_exchange_to_rits(
                 user_text=q,
                 agent_reply=text_out,
-                group_id=group_id if isinstance(group_id, str) else None,
+                group_id=gid if isinstance(gid, str) else None,
+                room_id=rid if isinstance(rid, str) else None,
+                line_source_type=source_type or None,
+                actor_user_id=uid.strip() if isinstance(uid, str) and uid.strip() else None,
             )
         except Exception as e:
             log.exception("LINE webhook 処理エラー")

@@ -22,6 +22,31 @@ def _clip(text: str | None, max_len: int = _MAX) -> str | None:
     return t if len(t) <= max_len else t[:max_len] + "…"
 
 
+def _group_observe_enabled() -> bool:
+    v = (os.environ.get("VERIORA_RITS_GROUP_OBSERVE") or "").strip().lower()
+    return v not in ("0", "false", "off", "no")
+
+
+def _line_context_metadata(
+    *,
+    group_id: str | None = None,
+    room_id: str | None = None,
+    line_source_type: str | None = None,
+    actor_user_id: str | None = None,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    meta: dict[str, Any] = dict(extra or {})
+    if group_id:
+        meta["group_id"] = group_id
+    if room_id:
+        meta["room_id"] = room_id
+    if line_source_type:
+        meta["line_source_type"] = line_source_type
+    if actor_user_id:
+        meta["actor_user_id"] = actor_user_id
+    return meta
+
+
 def send_agent_log_to_rits(
     *,
     user_message: str | None = None,
@@ -68,11 +93,48 @@ def record_line_exchange_to_rits(
     user_text: str,
     agent_reply: str,
     group_id: str | None = None,
+    room_id: str | None = None,
+    line_source_type: str | None = None,
+    actor_user_id: str | None = None,
 ) -> None:
     send_agent_log_to_rits(
         user_message=user_text,
         agent_reply=agent_reply,
         intent="line",
         source="line",
-        metadata={"group_id": group_id},
+        metadata=_line_context_metadata(
+            group_id=group_id,
+            room_id=room_id,
+            line_source_type=line_source_type,
+            actor_user_id=actor_user_id,
+        ),
+    )
+
+
+def record_group_observe_to_rits(
+    *,
+    user_text: str,
+    skip_reason: str,
+    group_id: str | None = None,
+    room_id: str | None = None,
+    line_source_type: str | None = None,
+    actor_user_id: str | None = None,
+) -> None:
+    if not _group_observe_enabled():
+        return
+    clipped = _clip(user_text)
+    if not clipped:
+        return
+    send_agent_log_to_rits(
+        user_message=clipped,
+        agent_reply=None,
+        intent="group_observe",
+        source="line",
+        metadata=_line_context_metadata(
+            group_id=group_id,
+            room_id=room_id,
+            line_source_type=line_source_type,
+            actor_user_id=actor_user_id,
+            extra={"observe_only": True, "skip_reason": skip_reason},
+        ),
     )
