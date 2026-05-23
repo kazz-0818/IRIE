@@ -38,7 +38,7 @@ def format_sheets_user_message(exc: BaseException) -> str:
         if status == 400:
             return (
                 "Sheets API がリクエスト不正と判断しました（400）。\n"
-                "シート範囲の指定が無効なことが多いです。LIRA はタブ一覧から名前を推測しますが、"
+                "シート範囲の指定が無効なことが多いです。IRIE はタブ一覧から名前を推測しますが、"
                 "合わない場合は SHEET_SUMMARY / SHEET_RECEIVABLES / SHEET_PAYABLES を"
                 "実タブ名に合わせてください。"
             )

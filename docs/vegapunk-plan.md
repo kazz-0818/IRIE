@@ -2,7 +2,7 @@
 
 ## とは
 
-**ベガパンク計画**は、NEAR / SERA / LIRA / RITS / LRAM が別々の LINE 公式アカウントで会話しても、裏側で **同じ顧客**としてプロフィール・好み・呼び名・重要メモを共有するための横断データ設計です。
+**ベガパンク計画**は、NEAR / SERA / IRIE / RITS / LRAM が別々の LINE 公式アカウントで会話しても、裏側で **同じ顧客**としてプロフィール・好み・呼び名・重要メモを共有するための横断データ設計です。
 
 ## なぜ LINE userId だけでは不十分か
 
@@ -58,7 +58,7 @@ LRAM は顧客のブランド嗜好・事業情報を `buildCustomerContextForAg
 ## 今後の拡張
 
 - 管理 UI（merge 承認・顧客閲覧）
-- LIRA 本線 webhook への resolve 接続
+- IRIE 本線 webhook への resolve 接続
 - 電話番号・メール一致による merge 候補（自動統合はしない）
 - RITS 日次レポートへの顧客横断節の常時 ON
 

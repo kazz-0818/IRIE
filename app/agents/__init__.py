@@ -1,4 +1,4 @@
-"""Veriora agent registry（LIRA）。"""
+"""Veriora agent registry（IRIE）。"""
 
 from app.agents.registry import (
     VERIORA_AGENT_DEFINITIONS,

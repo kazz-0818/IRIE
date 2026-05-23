@@ -3,9 +3,9 @@ from functools import lru_cache
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.config_env_alias import apply_lira_env_aliases
+from app.config_env_alias import apply_irie_env_aliases
 
-apply_lira_env_aliases()
+apply_irie_env_aliases()
 
 
 class Settings(BaseSettings):
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
         alias="SUPABASE_SERVICE_ROLE_KEY",
     )
     supabase_anon_key: str | None = Field(default=None, alias="SUPABASE_ANON_KEY")
-    supabase_audit_table: str = Field(default="lira_audit_log", alias="SUPABASE_AUDIT_TABLE")
+    supabase_audit_table: str = Field(default="irie_audit_log", alias="SUPABASE_AUDIT_TABLE")
 
     # OpenAI（/ask の自然文回答）
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")

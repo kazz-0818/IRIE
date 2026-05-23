@@ -54,7 +54,7 @@ def _reading_scope_notice(repo: SheetRepository) -> str:
 def _fastapi_kwargs() -> dict:
     s = get_settings()
     kwargs: dict = {
-        "title": "LIRA",
+        "title": "IRIE",
         "version": "0.1.0",
         "description": "BRANDVOX 経理 AI MVP（Sheets バックエンド）",
     }
@@ -78,7 +78,7 @@ def health() -> dict[str, Any]:
     s = get_settings()
     out: dict[str, Any] = {
         "status": "ok",
-        "service": "lira",
+        "service": "irie",
         "google_credentials_configured": bool((s.google_service_account_json or "").strip())
         or bool((s.google_application_credentials or "").strip()),
         "spreadsheet_id_configured": bool((s.spreadsheet_id or "").strip()),

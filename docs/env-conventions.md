@@ -105,7 +105,7 @@
 
 ## `.env.example` と config の同期
 
-- **新規 env を追加したら**: `.env.example`（および LIRA の `env/*.example`）と **config スキーマ**を同じ PR で更新する。
+- **新規 env を追加したら**: `.env.example`（および IRIE の `env/*.example`）と **config スキーマ**を同じ PR で更新する。
 - **値は書かない**（プレースホルダとコメントのみ）。
 
 ## 参考（Veliora OS）

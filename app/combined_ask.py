@@ -9,7 +9,7 @@ from app.llm_context import build_accounting_context, build_conversation_context
 from app.month_resolve import resolve_target_month_str
 from app.services import SheetRepository
 from app.sheets_errors import format_sheets_user_message_with_retry_hint
-from app.capabilities_help import format_lira_capabilities_reply, is_capabilities_help_question
+from app.capabilities_help import format_irie_capabilities_reply, is_capabilities_help_question
 from app.text_normalize import normalize_user_question
 
 log = logging.getLogger(__name__)
@@ -28,12 +28,12 @@ def _fallback_text(structured: dict) -> str:
     intent = structured.get("intent", "unknown")
     if intent == "greeting":
         return (
-            "LIRA 経理部です。こんにちは。\n"
+            "IRIE 経理部です。こんにちは。\n"
             "「今月の売上」「入金予定」「未入金」「支払い予定」など、気軽に聞いてください。"
         )
     if intent == "casual_chat":
         return (
-            "LIRA です。お気軽にどうぞ。\n"
+            "IRIE です。お気軽にどうぞ。\n"
             "雑談も大丈夫です。経理の数字が知りたくなったら、"
             "「今月どう？」「入金予定」などと送ってください。"
         )
@@ -95,7 +95,7 @@ def answer_for_user(
 ) -> str:
     """人が読む自然文。OpenAI が使えなければルールベースの短文。"""
     if is_capabilities_help_question(question):
-        return format_lira_capabilities_reply()
+        return format_irie_capabilities_reply()
     try:
         if repo is None:
             repo = SheetRepository()
@@ -107,7 +107,7 @@ def answer_for_user(
         if not s.openai_api_key:
             return (
                 _partial_notice(repo)
-                + "（ルールのみ）経理シートの列レイアウトが LIRA 既定と異なるため、"
+                + "（ルールのみ）経理シートの列レイアウトが IRIE 既定と異なるため、"
                 "数値の自動読み取りができていません。\n"
                 "Render の Environment に OPENAI_API_KEY を設定すると、"
                 "スプレッドシートの生データを LLM が読んで回答します。\n\n"

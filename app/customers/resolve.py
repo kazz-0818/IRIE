@@ -1,4 +1,4 @@
-"""Veliora 共通顧客マスター（LIRA / ベガパンク）— Supabase 経由の薄い接続。
+"""Veliora 共通顧客マスター（IRIE / ベガパンク）— Supabase 経由の薄い接続。
 
 接続: `app/line_routes.py` の LINE webhook（1:1 / グループ応答前）。
 `app/services.py` とパッケージ名が衝突するため `app/customers/` に配置。
@@ -14,8 +14,8 @@ from supabase import Client
 
 log = logging.getLogger(__name__)
 
-CHANNEL_KEY = "lira_line"
-AGENT_KEY = "lira"
+CHANNEL_KEY = "irie_line"
+AGENT_KEY = "irie"
 
 
 def is_customer_master_enabled() -> bool:
@@ -47,7 +47,7 @@ def resolve_customer_from_line(
 
         cust = (
             schema.table("customers")
-            .insert({"status": "active", "metadata": {"source": "lira_resolve"}})
+            .insert({"status": "active", "metadata": {"source": "irie_resolve"}})
             .execute()
         )
         cust_rows = cust.data or []
@@ -85,7 +85,7 @@ def build_customer_context_prompt(
         return ""
     try:
         schema = client.schema("veriora")
-        parts: list[str] = ["【Veliora 共通顧客情報（LIRA）】"]
+        parts: list[str] = ["【Veliora 共通顧客情報（IRIE）】"]
 
         cust = schema.table("customers").select("display_name,preferred_name,nickname").eq("id", customer_id).limit(1).execute()
         if cust.data:

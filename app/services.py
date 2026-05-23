@@ -205,7 +205,7 @@ def monthly_report_text(
         )
     if audience == "internal":
         return (
-            f"[LIRA 内部メモ]\n"
+            f"[IRIE 内部メモ]\n"
             f"{body}\n"
             f"※数値はスプレッドシートの月次・実績系タブの値に基づきます。"
             f"差異があれば原票を確認してください。"
@@ -216,7 +216,7 @@ def monthly_report_text(
         f"{month} 分の月次概況を共有いたします。\n\n"
         f"{body}\n"
         f"ご不明点がございましたら担当までお問い合わせください。\n"
-        f"BRANDVOX 経理チーム（LIRA）"
+        f"BRANDVOX 経理チーム（IRIE）"
     )
 
 
@@ -229,7 +229,7 @@ def payment_received_text(rows: list[ReceivableRow], audience: Audience) -> str:
     block = "\n".join(lines) if lines else "（対象行なし）"
     if audience == "internal":
         return (
-            "[LIRA 入金確認・内部]\n"
+            "[IRIE 入金確認・内部]\n"
             f"以下について入金を確認しました。\n{block}\n"
             f"入金確認チェックと実入金日の更新をお願いします。"
         )
@@ -254,7 +254,7 @@ def overdue_reminder_text(rows: list[ReceivableRow], audience: Audience) -> str:
     block = "\n".join(lines) if lines else "（対象行なし）"
     if audience == "internal":
         return (
-            "[LIRA 督促・内部]\n"
+            "[IRIE 督促・内部]\n"
             f"未入金候補:\n{block}\n"
             f"送付チャネル・文面トーンの最終確認後、対外送付をお願いします。"
         )

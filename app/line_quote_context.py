@@ -79,7 +79,7 @@ def enrich_question_with_quote(user_question: str, quote: LineQuoteContext | Non
     if quote.quoted_text:
         header = "【リプライ先のメッセージ】"
         if quote.quoted_from_bot:
-            header = "【リプライ先（LIRA の直前の発言）】"
+            header = "【リプライ先（IRIE の直前の発言）】"
         lines.append(f"{header}\n{quote.quoted_text}")
     elif quote.quoted_message_id:
         lines.append(

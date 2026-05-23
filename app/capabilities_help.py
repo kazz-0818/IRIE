@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-_LIRA_BULLETS: tuple[str, ...] = (
+_IRIE_BULLETS: tuple[str, ...] = (
     "今月の売上・経費・利益の説明",
     "入金予定・未入金の確認",
     "支払い・経費の金額や一覧",
@@ -16,7 +16,7 @@ _LIRA_BULLETS: tuple[str, ...] = (
 _HELP_RE = re.compile(
     r"何ができ|なにができ|できること|何ができます|何をしてくれ|何を手伝|"
     r"何が使え|使い方|ヘルプ|help|機能一覧|機能は何|できる？|できますか|"
-    r"お願いできる|仕事は何|役割は|LIRAって|リラって|あなたは誰",
+    r"お願いできる|仕事は何|役割は|IRIEって|イリって|あなたは誰",
     re.IGNORECASE,
 )
 
@@ -28,9 +28,9 @@ def is_capabilities_help_question(text: str) -> bool:
     return bool(_HELP_RE.search(n))
 
 
-def format_lira_capabilities_reply() -> str:
-    lines = ["LIRA（経理）で、いまお手伝いできることはだいたい次のとおりです。", ""]
-    lines.extend(f"・{b}" for b in _LIRA_BULLETS)
+def format_irie_capabilities_reply() -> str:
+    lines = ["IRIE（経理）で、いまお手伝いできることはだいたい次のとおりです。", ""]
+    lines.extend(f"・{b}" for b in _IRIE_BULLETS)
     lines.append("")
     lines.append("例:「今月どう？」「入金予定」「未入金ある？」など、気軽に聞いてください。")
     return "\n".join(lines)

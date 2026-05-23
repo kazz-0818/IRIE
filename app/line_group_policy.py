@@ -2,7 +2,7 @@
 
 - 1:1（source.type=user）… 常に応答
 - グループ／ルーム … **メンション** または **ボット名呼び** があるときのみ応答
-- リプライ … LIRA 自身の発言への返信は名前なしでも応答（それ以外はメンション・名前呼び必須）
+- リプライ … IRIE 自身の発言への返信は名前なしでも応答（それ以外はメンション・名前呼び必須）
 """
 
 from __future__ import annotations
@@ -14,10 +14,10 @@ from app.line_quote_context import LineQuoteContext
 
 # デフォルトの名前呼び（LINE_BOT_NAME_ALIASES で上書き可）
 _DEFAULT_NAME_ALIASES: tuple[str, ...] = (
-    "りら",
-    "リラ",
-    "LIRA",
-    "lira",
+    "いり",
+    "イリ",
+    "IRIE",
+    "irie",
 )
 
 

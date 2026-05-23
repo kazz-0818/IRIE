@@ -67,7 +67,7 @@ def raw_sheet_preview(
         "grid_col_count": max((len(r) for r in grid), default=0),
         "grid": grid,
         "note": (
-            "列名は LIRA 専用タブ前提ではない場合があります。"
+            "列名は IRIE 専用タブ前提ではない場合があります。"
             "売上・経費・入金・支払はこのグリッドから読み取ってください。"
         ),
     }

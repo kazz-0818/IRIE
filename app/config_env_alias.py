@@ -22,7 +22,7 @@ def _pick_first(keys: Iterable[str]) -> str | None:
     return None
 
 
-def apply_env_aliases(rules: tuple[EnvAliasRule, ...], *, service: str = "lira") -> None:
+def apply_env_aliases(rules: tuple[EnvAliasRule, ...], *, service: str = "irie") -> None:
     for rule in rules:
         if _pick_first((rule.canonical,)):
             continue
@@ -39,49 +39,49 @@ def apply_env_aliases(rules: tuple[EnvAliasRule, ...], *, service: str = "lira")
             break
 
 
-LIRA_ENV_ALIASES: tuple[EnvAliasRule, ...] = (
+IRIE_ENV_ALIASES: tuple[EnvAliasRule, ...] = (
     EnvAliasRule(
         "LINE_CHANNEL_SECRET",
-        ("LIRA_LINE_CHANNEL_SECRET",),
+        ("IRIE_LINE_CHANNEL_SECRET",),
         deprecated_legacy=True,
     ),
     EnvAliasRule(
         "LINE_CHANNEL_ACCESS_TOKEN",
-        ("LIRA_LINE_CHANNEL_ACCESS_TOKEN",),
+        ("IRIE_LINE_CHANNEL_ACCESS_TOKEN",),
         deprecated_legacy=True,
     ),
     EnvAliasRule(
         "SUPABASE_URL",
-        ("LIRA_SUPABASE_URL", "VERIORA_SUPABASE_URL"),
+        ("IRIE_SUPABASE_URL", "VERIORA_SUPABASE_URL"),
         deprecated_legacy=True,
     ),
     EnvAliasRule(
         "SUPABASE_SERVICE_ROLE_KEY",
-        ("LIRA_SUPABASE_SERVICE_ROLE_KEY", "VERIORA_SUPABASE_SERVICE_ROLE_KEY"),
+        ("IRIE_SUPABASE_SERVICE_ROLE_KEY", "VERIORA_SUPABASE_SERVICE_ROLE_KEY"),
         deprecated_legacy=True,
     ),
     EnvAliasRule(
         "OPENAI_API_KEY",
-        ("LIRA_OPENAI_API_KEY", "VERIORA_OPENAI_API_KEY"),
+        ("IRIE_OPENAI_API_KEY", "VERIORA_OPENAI_API_KEY"),
         deprecated_legacy=True,
     ),
     EnvAliasRule(
         "PUBLIC_APP_URL",
-        ("VERIORA_PUBLIC_BASE_URL", "LIRA_PUBLIC_APP_URL"),
+        ("VERIORA_PUBLIC_BASE_URL", "IRIE_PUBLIC_APP_URL"),
         deprecated_legacy=True,
     ),
     EnvAliasRule(
         "VERIORA_RITS_BASE_URL",
-        ("RITS_BASE_URL", "RITS_URL", "LIRA_RITS_BASE_URL"),
+        ("RITS_BASE_URL", "RITS_URL", "IRIE_RITS_BASE_URL"),
         deprecated_legacy=True,
     ),
     EnvAliasRule(
         "VERIORA_RITS_ADMIN_API_KEY",
-        ("RITS_ADMIN_API_KEY", "LIRA_RITS_ADMIN_API_KEY"),
+        ("RITS_ADMIN_API_KEY", "IRIE_RITS_ADMIN_API_KEY"),
         deprecated_legacy=True,
     ),
 )
 
 
-def apply_lira_env_aliases() -> None:
-    apply_env_aliases(LIRA_ENV_ALIASES, service="lira")
+def apply_irie_env_aliases() -> None:
+    apply_env_aliases(IRIE_ENV_ALIASES, service="irie")

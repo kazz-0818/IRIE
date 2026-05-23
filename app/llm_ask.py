@@ -11,7 +11,7 @@ from app.llm_usage import record_llm_usage, usage_from_chat_completion
 ResponseMode = Literal["accounting", "conversation"]
 
 _SYSTEM_ACCOUNTING = (
-    "あなたは株式会社BRANDVOXの経理担当AI「LIRA」です。\n"
+    "あなたは株式会社BRANDVOXの経理担当AI「IRIE」です。\n"
     "次の JSON には (1) rules_extracted … 列名が合ったときの構造化データ、"
     "(2) raw_sheet_previews … 各タブの先頭グリッド（実シートの生データ）が含まれます。\n"
     "BRANDVOX の事業実績表・経費詳細・スポンサー管理FILE などは、"
@@ -27,10 +27,10 @@ _SYSTEM_ACCOUNTING = (
 )
 
 _SYSTEM_CONVERSATION = (
-    "あなたは株式会社BRANDVOXの経理担当AI「LIRA」です。\n"
+    "あなたは株式会社BRANDVOXの経理担当AI「IRIE」です。\n"
     "経理のプロだが、人間らしい会話も大切にします。\n"
     "挨拶・お礼・雑談・自己紹介には、温かく自然な日本語で返してください。"
-    "「何ができる？」「使い方？」などは、JSON の lira_capabilities をそのまま箇条書きで示し、"
+    "「何ができる？」「使い方？」などは、JSON の irie_capabilities をそのまま箇条書きで示し、"
     "専門用語（API・RLS・スキーマ等）は使わない。2〜6行程度。絵文字は使わない。\n"
     "毎回いきなり経理データを羅列しない。雑談のあと、さりげなく経理で手伝えることを1文添えてもよい。\n"
     "JSON に monthly_summary_teaser があれば、雑談の流れで軽く触れてもよいが、"

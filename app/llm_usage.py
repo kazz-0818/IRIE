@@ -12,7 +12,7 @@ from typing import Any
 
 log = logging.getLogger(__name__)
 
-AGENT_NAME = "LIRA"
+AGENT_NAME = "IRIE"
 
 
 @dataclass(frozen=True)

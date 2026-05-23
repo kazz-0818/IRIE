@@ -3,7 +3,7 @@
 
 services:
   - type: web
-    name: lira
+    name: irie
     runtime: docker
     region: oregon
     plan: free

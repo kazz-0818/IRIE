@@ -48,9 +48,9 @@ def build_conversation_context(
         "resolved_sheets": dict(repo.resolved_sheets),
         "sheet_warnings": list(repo.warnings)[:4],
         "monthly_summary_teaser": summ_dict,
-        "lira_capabilities": list(_CONVERSATION_CAPABILITIES),
+        "irie_capabilities": list(_CONVERSATION_CAPABILITIES),
         "persona_note": (
-            "株式会社BRANDVOXの経理担当AI「LIRA」。"
+            "株式会社BRANDVOXの経理担当AI「IRIE」。"
             "丁寧だが堅苦しくなりすぎない口調で、短い雑談にも自然に返答する。"
             "経理の質問には喜んで答える。"
         ),
@@ -132,7 +132,7 @@ def build_accounting_context(
         "resolved_sheets": dict(repo.resolved_sheets),
         "sheet_warnings": list(repo.warnings),
         "interpretation_hint": (
-            "BRANDVOX 経理ファイルは LIRA 専用列名と一致しないことがあります。"
+            "BRANDVOX 経理ファイルは IRIE 専用列名と一致しないことがあります。"
             "rules_extracted が空でも raw_sheet_previews の grid から"
             "数値・日付を読んで回答してください。"
             f" {month_hint}"

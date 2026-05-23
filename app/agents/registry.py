@@ -1,4 +1,4 @@
-"""Veriora 組織の静的エージェントマスタ（LIRA）。実行経路からは未接続。"""
+"""Veriora 組織の静的エージェントマスタ（IRIE）。実行経路からは未接続。"""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
         primary_responsibilities=(
             "依頼内容の聞き取り・整理・優先度付け",
             "リマインダー・タスク・メモ等の秘書オペレーション支援",
-            "他エージェント（SERA / LIRA / RITS / LRAM）への取次ぎと文脈の引き継ぎ",
+            "他エージェント（SERA / IRIE / RITS / LRAM）への取次ぎと文脈の引き継ぎ",
             "未対応・成長シグナル等の記録（既存 NEAR 機能に準拠）",
         ),
         out_of_scope=(
@@ -30,10 +30,10 @@ VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
         ),
         handoff_rules=(
             "マーケ・SNS・広告・Instagram 分析は SERA に渡す",
-            "売上・経費・入金・スプレッドシート上の経理は LIRA に渡す",
+            "売上・経費・入金・スプレッドシート上の経理は IRIE に渡す",
             "会話品質・役割逸脱の監査・改善指示は RITS に渡す",
             "BRAVO 記事・WordPress 下書き・編集は LRAM に渡す",
-            "複数部署が必要な場合は、事実確認（LIRA）→ 外向きコピー（LRAM）の順を既定とする",
+            "複数部署が必要な場合は、事実確認（IRIE）→ 外向きコピー（LRAM）の順を既定とする",
         ),
         allowed_actions=(
             "定型返信・タスク登録・リマインド案内",
@@ -73,7 +73,7 @@ VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
             "医療効果・法令違反に触れる表現の保証",
         ),
         handoff_rules=(
-            "金額・請求・入金の確定は LIRA",
+            "金額・請求・入金の確定は IRIE",
             "全社ポリシー・人事評価に関する監査文面は RITS",
             "記事化・WP 下書きは LRAM",
             "一般秘書タスクは NEAR に戻す",
@@ -93,11 +93,11 @@ VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
         tags=("marketing", "sns", "meta", "line"),
     ),
     AgentDefinition(
-        id="lira",
-        code="LIRA",
-        kana="リラ",
+        id="irie",
+        code="IRIE",
+        kana="イリ",
         department="経理部",
-        display_name="LIRA-リラ-『経理部』",
+        display_name="IRIE-イリ-『経理部』",
         role="売上・経費・請求・入金・利益管理",
         description=(
             "経理・数値の整理を担当。スプレッドシート等の正データに基づき、入金・支払・利益の説明と定型回答を行う。"
@@ -127,9 +127,9 @@ VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
             "会計方針の変更・勘定科目の再分類の確定",
         ),
         enabled=True,
-        icon_key="lira",
-        line_account_name="LIRA（経理部）",
-        system_prompt_key="lira",
+        icon_key="irie",
+        line_account_name="IRIE（経理部）",
+        system_prompt_key="irie",
         tags=("accounting", "sheets", "line"),
     ),
     AgentDefinition(
@@ -151,11 +151,11 @@ VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
         ),
         out_of_scope=(
             "人間の採用・解雇・評価面談の代替",
-            "NEAR / SERA / LIRA の業務ロジックの無承認変更",
+            "NEAR / SERA / IRIE の業務ロジックの無承認変更",
         ),
         handoff_rules=(
             "実務の実行は各エージェントのオーナー承認のもと NEAR 等へ戻す",
-            "マーケ数値の真偽は SERA・LIRA のデータソースを参照",
+            "マーケ数値の真偽は SERA・IRIE のデータソースを参照",
         ),
         allowed_actions=(
             "ログに基づくコメント・スコアリング案（ポリシー内）",
@@ -193,7 +193,7 @@ VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
             "他メディアの著作権侵害に相当するコピー",
         ),
         handoff_rules=(
-            "数値・売上ファクトの確認は LIRA",
+            "数値・売上ファクトの確認は IRIE",
             "集客・SNS連携の戦略決めは SERA と調整",
             "ユーザー向けの取次ぎ・スケジュールは NEAR",
         ),
@@ -215,7 +215,6 @@ VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
 
 _BY_ID = {a.id.lower(): a for a in VERIORA_AGENT_DEFINITIONS}
 _BY_CODE = {a.code.upper(): a for a in VERIORA_AGENT_DEFINITIONS}
-
 
 def get_veriora_agent_by_id(agent_id: str) -> AgentDefinition | None:
     return _BY_ID.get(agent_id.strip().lower())
