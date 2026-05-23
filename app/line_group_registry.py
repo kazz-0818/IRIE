@@ -1,4 +1,4 @@
-"""LINE グループ／ルーム ID の観測ログ（Supabase lira.line_group_registry）。"""
+"""LINE グループ／ルーム ID の観測ログ（Supabase irie.line_group_registry）。"""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def record_line_chat_seen(
 
     try:
         client.rpc(
-            "upsert_lira_line_group_registry",
+            "upsert_irie_line_group_registry",
             {
                 "p_chat_id": chat_id,
                 "p_chat_kind": chat_kind,

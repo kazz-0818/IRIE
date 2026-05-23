@@ -48,7 +48,7 @@ def test_group_responds_on_bot_mention_is_self() -> None:
         "source": {"type": "group", "groupId": "G1"},
         "message": {
             "type": "text",
-            "text": "@LIRA 売上",
+            "text": "@IRIE 売上",
             "mention": {
                 "mentionees": [
                     {
@@ -66,7 +66,7 @@ def test_group_responds_on_bot_mention_is_self() -> None:
     assert ok is True
     assert reason == "mention"
     assert bot_mentioned_in_message(ev["message"]) is True
-    assert strip_line_mentions("@LIRA 売上", ev["message"]["mention"]) == "売上"
+    assert strip_line_mentions("@IRIE 売上", ev["message"]["mention"]) == "売上"
 
 
 def test_group_reply_without_mention_stays_silent() -> None:
@@ -107,7 +107,7 @@ def test_mention_only_becomes_placeholder_question() -> None:
         "source": {"type": "group", "groupId": "G1"},
         "message": {
             "type": "text",
-            "text": "@LIRA",
+            "text": "@IRIE",
             "mention": {
                 "mentionees": [
                     {"index": 0, "length": 5, "userId": "B1", "type": "user", "isSelf": True},

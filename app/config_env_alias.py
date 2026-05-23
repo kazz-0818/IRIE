@@ -82,7 +82,7 @@ IRIE_ENV_ALIASES: tuple[EnvAliasRule, ...] = (
     ),
     EnvAliasRule(
         "LINE_MAIN_GROUP_ID",
-        ("IRIE_LINE_MAIN_GROUP_ID", "LIRA_LINE_MAIN_GROUP_ID"),
+        ("IRIE_LINE_MAIN_GROUP_ID",),
         deprecated_legacy=True,
     ),
 )

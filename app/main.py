@@ -115,7 +115,7 @@ def debug_line_groups(limit: int = Query(20, ge=1, le=100)):
         return {"items": [], "error": "supabase_not_configured"}
     try:
         res = (
-            client.table("lira_line_group_registry")
+            client.table("irie_line_group_registry")
             .select("chat_id,chat_kind,last_seen_at,last_text_preview,hit_count")
             .order("last_seen_at", desc=True)
             .limit(limit)
@@ -325,7 +325,7 @@ def post_overdue_reminder(body: RowSelection, repo: RepoDep):
 class AskBody(BaseModel):
     question: str = Field(..., min_length=1)
     manual_customer_id: str | None = Field(default=None, description="既存 customer UUID")
-    line_user_id: str | None = Field(default=None, description="LINE userId（lira_line）")
+    line_user_id: str | None = Field(default=None, description="LINE userId（irie_line）")
     email: str | None = Field(default=None, description="customers.email 照合")
 
 
