@@ -53,3 +53,7 @@ WITH (security_invoker = true) AS
 
 COMMENT ON VIEW public.lira_line_group_registry IS
   'LIRA が Webhook で観測した LINE groupId / roomId 一覧（読取専用）。';
+
+GRANT USAGE ON SCHEMA lira TO service_role;
+GRANT SELECT, INSERT, UPDATE ON lira.line_group_registry TO service_role;
+GRANT SELECT ON public.lira_line_group_registry TO service_role;
