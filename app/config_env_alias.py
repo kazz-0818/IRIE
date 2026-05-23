@@ -80,6 +80,11 @@ IRIE_ENV_ALIASES: tuple[EnvAliasRule, ...] = (
         ("RITS_ADMIN_API_KEY", "IRIE_RITS_ADMIN_API_KEY"),
         deprecated_legacy=True,
     ),
+    EnvAliasRule(
+        "LINE_MAIN_GROUP_ID",
+        ("IRIE_LINE_MAIN_GROUP_ID", "LIRA_LINE_MAIN_GROUP_ID"),
+        deprecated_legacy=True,
+    ),
 )
 
 

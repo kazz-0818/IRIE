@@ -67,6 +67,11 @@ class Settings(BaseSettings):
         default=None,
         alias="LINE_BOT_USER_ID",
     )
+    # 運用メイングループ（LINE groupId / roomId）。未設定時は全グループを同等に扱う
+    line_main_group_id: str | None = Field(
+        default=None,
+        alias="LINE_MAIN_GROUP_ID",
+    )
 
 
 @lru_cache

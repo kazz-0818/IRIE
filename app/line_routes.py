@@ -26,6 +26,7 @@ from app.line_group_policy import (
     parse_name_aliases,
     should_respond_line_event,
 )
+from app.line_group_registry import is_main_line_group, record_line_chat_seen
 from app.line_message_cache import get_line_message_cache, line_chat_key
 from app.line_quote_context import enrich_question_with_quote, resolve_line_quote
 from app.line_user_profile import fetch_line_caller_display_name
@@ -149,14 +150,32 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
     cache = get_line_message_cache()
 
     for ev in data.get("events", []):
-        if ev.get("type") != "message":
+        source = ev.get("source") or {}
+        ev_type = ev.get("type")
+
+        if ev_type in ("join", "memberJoined"):
+            record_line_chat_seen(source, text=f"({ev_type})", respond_reason=ev_type)
+            log.info(
+                "LINE %s: kind=%s id=%s",
+                ev_type,
+                source.get("type"),
+                source.get("groupId") or source.get("roomId"),
+            )
+            continue
+
+        if ev_type != "message":
             continue
         msg = ev.get("message") or {}
         if msg.get("type") != "text":
             continue
 
-        source = ev.get("source") or {}
         chat_key = line_chat_key(source)
+        raw_text = (msg.get("text") or "").strip()
+        record_line_chat_seen(
+            source,
+            text=raw_text,
+            respond_reason=None,
+        )
         _remember_inbound_message(ev, chat_key)
 
         quote = resolve_line_quote(msg, chat_key, cache)
@@ -175,7 +194,6 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
             )
             source_type = source.get("type") or ""
             if source_type in ("group", "room"):
-                raw_text = (msg.get("text") or "").strip()
                 if raw_text:
                     uid = source.get("userId")
                     actor = uid.strip() if isinstance(uid, str) and uid.strip() else None
@@ -263,15 +281,20 @@ async def handle_line_webhook(request: Request) -> dict[str, str]:
                 log.exception("LINE エラー返信も失敗")
         else:
             try:
-                log_audit(
-                    "line_webhook",
-                    {
-                        "question_len": len(q),
-                        "line_source": source_type,
-                        "respond_reason": reason,
-                        "has_quote": bool(quote and quote.has_quote()),
-                    },
-                )
+                audit_detail: dict[str, Any] = {
+                    "question_len": len(q),
+                    "line_source": source_type,
+                    "respond_reason": reason,
+                    "has_quote": bool(quote and quote.has_quote()),
+                    "is_main_group": is_main_line_group(source),
+                }
+                gid = source.get("groupId") if source_type == "group" else None
+                rid = source.get("roomId") if source_type == "room" else None
+                if isinstance(gid, str) and gid.strip():
+                    audit_detail["line_group_id"] = gid.strip()
+                if isinstance(rid, str) and rid.strip():
+                    audit_detail["line_room_id"] = rid.strip()
+                log_audit("line_webhook", audit_detail)
             except Exception:
                 log.exception("監査ログ（Supabase）の記録に失敗しました（返信は済み）")
 

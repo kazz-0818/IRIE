@@ -24,5 +24,9 @@ services:
         sync: false
       - key: LINE_CHANNEL_ACCESS_TOKEN
         sync: false
+      - key: LINE_MAIN_GROUP_ID
+        sync: false
+      - key: VERIORA_RITS_GROUP_OBSERVE
+        sync: false
       - key: PUBLIC_APP_URL
         sync: false

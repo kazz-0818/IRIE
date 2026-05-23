@@ -91,6 +91,7 @@ def health() -> dict[str, Any]:
             s.supabase_url and s.supabase_service_role_key,
         ),
         "line_configured": bool(s.line_channel_secret and s.line_channel_access_token),
+        "line_main_group_id_configured": bool((s.line_main_group_id or "").strip()),
     }
     out.update(deployment_revision())
     try:
@@ -104,6 +105,26 @@ def health() -> dict[str, Any]:
     except Exception as e:
         out["spreadsheet_access_error"] = f"{type(e).__name__}: {e!s}"[:500]
     return out
+
+
+@app.get("/debug/line/groups")
+def debug_line_groups(limit: int = Query(20, ge=1, le=100)):
+    """観測済み LINE グループ／ルーム ID（メイングループ GID 調査用。秘密は含めない）。"""
+    client = _supabase_client()
+    if client is None:
+        return {"items": [], "error": "supabase_not_configured"}
+    try:
+        res = (
+            client.table("lira_line_group_registry")
+            .select("chat_id,chat_kind,last_seen_at,last_text_preview,hit_count")
+            .order("last_seen_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        items = res.data or []
+    except Exception as e:
+        return {"items": [], "error": f"{type(e).__name__}: {e!s}"[:200]}
+    return {"items": items, "count": len(items)}
 
 
 @app.get("/debug/sheets")
