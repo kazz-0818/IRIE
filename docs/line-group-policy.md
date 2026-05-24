@@ -37,8 +37,8 @@ BRANDVOX 経理の本番トークなど、**運用上の正本グループ**の 
 
 GID の調べ方:
 
-1. 対象グループで何か一言送る（メンション不要）。Webhook 経由で `lira.line_group_registry` に記録される。
-2. `GET /debug/line/groups` または Supabase の `public.lira_line_group_registry` を参照。
+1. 対象グループで何か一言送る（メンション不要）。Webhook 経由で `irie.line_group_registry` に記録される。
+2. `GET /debug/line/groups` または Supabase の `public.irie_line_group_registry` を参照。
 3. 確定した ID を `LINE_MAIN_GROUP_ID` に設定して再デプロイ。
 
 ## 運用メモ
