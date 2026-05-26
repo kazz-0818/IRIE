@@ -3,9 +3,9 @@
 > **旧 LIRA から移行しました。** 詳細: [`docs/MIGRATION_FROM_LIRA.md`](docs/MIGRATION_FROM_LIRA.md)  
 > GitHub: `kazz-0818/LIRA` → **[`kazz-0818/IRIE`](https://github.com/kazz-0818/IRIE)**（rename 済み・旧 URL はリダイレクト）
 
-## Veriora 組織OS
+## Veliora 組織OS
 
-このリポジトリは **Veriora** の経理部エージェント（**IRIE-イリ-『経理部』**）です。組織共通の規約・registry・手順は [`AGENTS.md`](AGENTS.md) と [`docs/veriora-architecture.md`](docs/veriora-architecture.md) を参照してください。
+このリポジトリは **Veliora** の経理部エージェント（**IRIE-イリ-『経理部』**）です。組織共通の規約・registry・手順は [`AGENTS.md`](AGENTS.md) と [`docs/veriora-architecture.md`](docs/veriora-architecture.md) を参照してください。
 
 Google スプレッドシートを正とした会計サマリー・入金／支払スケジュール取得、定型文面生成、**OpenAI による自然文回答**、**LINE Webhook 返信**、**Supabase 監査ログ**（任意）を行う REST API です。バックエンドは **Python 3.12+** / **FastAPI**、データ取得は **Google Sheets API v4（サービスアカウント・読み取り専用スコープ）** です。
 

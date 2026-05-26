@@ -1,10 +1,10 @@
-"""Veriora 組織の静的エージェントマスタ（IRIE）。実行経路からは未接続。"""
+"""Veliora 組織の静的エージェントマスタ（IRIE）。実行経路からは未接続。"""
 
 from __future__ import annotations
 
 from app.agents.types import AgentDefinition
 
-VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
+VELIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
     AgentDefinition(
         id="near",
         code="NEAR",
@@ -13,7 +13,7 @@ VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
         display_name="NEAR-ニア-『秘書部』",
         role="総合窓口・秘書・タスク整理・指示受付",
         description=(
-            "Veriora の一次窓口。ユーザーの依頼を受け、タスク整理・スケジュール・"
+            "Veliora の一次窓口。ユーザーの依頼を受け、タスク整理・スケジュール・"
             "社内オペレーションの補助を行い、専門部署へ適切に取次ぐ。"
             "未対応領域はログ化し改善サイクルへ渡す。"
         ),
@@ -213,8 +213,8 @@ VERIORA_AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
     ),
 )
 
-_BY_ID = {a.id.lower(): a for a in VERIORA_AGENT_DEFINITIONS}
-_BY_CODE = {a.code.upper(): a for a in VERIORA_AGENT_DEFINITIONS}
+_BY_ID = {a.id.lower(): a for a in VELIORA_AGENT_DEFINITIONS}
+_BY_CODE = {a.code.upper(): a for a in VELIORA_AGENT_DEFINITIONS}
 
 def get_veriora_agent_by_id(agent_id: str) -> AgentDefinition | None:
     return _BY_ID.get(agent_id.strip().lower())

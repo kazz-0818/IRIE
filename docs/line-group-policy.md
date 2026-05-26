@@ -1,6 +1,6 @@
 # LINE グループ／ルームの応答方針（IRIE）
 
-Veriora 組織内の LINE エージェント（NEAR / SERA / IRIE 等）で共通する想定です。
+Veliora 組織内の LINE エージェント（NEAR / SERA / IRIE 等）で共通する想定です。
 
 ## ルール
 

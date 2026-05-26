@@ -1,15 +1,16 @@
-# AGENTS.md — Veriora 組織OS（AI エージェント向け）
+# AGENTS.md — Veliora 組織OS（AI エージェント向け）
 
-このリポジトリは **Veriora**（AI エージェントが役割分担する組織 OS）の一部です。人間・AI いずれが変更する場合も、**既存の本番挙動を壊さない**ことを最優先してください。
+このリポジトリは **Veliora**（AI エージェントが役割分担する組織 OS）の一部です。人間・AI いずれが変更する場合も、**既存の本番挙動を壊さない**ことを最優先してください。
 
 ## 正典とレガシー表記
 
-- **組織・設計上の正典名**: **Veriora**
-- **レガシー（コード・DB に残りうる表記）**: **Veliora**（例: Postgres の `veliora` schema、`VELIORA_OS.md` など）。**いきなり全置換しない**。表記統一は別 Phase で計画する。
+- **組織・ブランド名（正典）**: **Veliora**
+- **技術識別子（変更しない）**: Postgres スキーマ `veriora`、env 接頭辞 `VERIORA_*`、`verioraHandoff.ts` など
+- **旧誤表記**: **Veriora** は **Veliora** に読み替え。`veliora` schema は旧 LINE ログ用（`VELIORA_LEGACY_VELIORA_LINE_LOG`）
 
 ## このリポジトリの役割
 
-各サービスは Veriora の「部署」に相当します。詳細は [`docs/veriora-architecture.md`](docs/veriora-architecture.md) を参照してください。
+各サービスは Veliora の「部署」に相当します。詳細は [`docs/veriora-architecture.md`](docs/veriora-architecture.md) を参照してください。
 
 ## 必読ドキュメント
 

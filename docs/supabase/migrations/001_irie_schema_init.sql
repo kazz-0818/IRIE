@@ -8,7 +8,7 @@
 
 CREATE SCHEMA IF NOT EXISTS irie;
 
-COMMENT ON SCHEMA irie IS 'IRIE 経理エージェント専用（Veriora 共有 Supabase）';
+COMMENT ON SCHEMA irie IS 'IRIE 経理エージェント専用（Veliora 共有 Supabase）';
 
 -- ---------------------------------------------------------------------------
 -- 監査ログ（/ask, line_webhook 等。API キー・生 PII は detail に入れない）

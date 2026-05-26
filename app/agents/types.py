@@ -1,4 +1,4 @@
-"""Veriora agent registry — 共通データ型（IRIE）。"""
+"""Veliora agent registry — 共通データ型（IRIE）。"""
 
 from __future__ import annotations
 
