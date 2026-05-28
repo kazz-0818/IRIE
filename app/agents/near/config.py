@@ -4,8 +4,8 @@ from __future__ import annotations
 AGENT_KEY = "near"
 
 VERIORA_TABLES_USED = (
-    "veriora.ai_agents",
-    "veriora.agent_audit_logs",
+    "veliora.ai_agents",
+    "veliora.agent_audit_logs",
 )
 
 IMPLEMENTATION_NOTE = "See app/ (existing LIRA handlers); registry in app/agents/registry.py"
