@@ -18,7 +18,7 @@ def save_audit_log(
     conversation_id: str | None = None,
 ) -> str | None:
     """
-    `veriora.agent_audit_logs` へ挿入（best-effort）。
+    `veliora.agent_audit_logs` へ挿入（best-effort）。
     既存 `lira.lira_audit_log` / `log_audit` は変更しない。
     """
     try:

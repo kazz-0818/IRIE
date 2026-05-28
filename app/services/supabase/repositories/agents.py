@@ -9,7 +9,7 @@ log = logging.getLogger(__name__)
 
 
 def get_agent_by_key(client: Client, agent_key: str) -> dict[str, Any] | None:
-    """`veriora.ai_agents` から agent_key で1件取得。"""
+    """`veliora.ai_agents` から agent_key で1件取得。"""
     try:
         r = (
             client.schema("veriora")
