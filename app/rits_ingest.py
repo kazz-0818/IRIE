@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -69,23 +70,39 @@ def send_agent_log_to_rits(
         "metadata": metadata or {},
     }
     url = f"{base}/admin/logs"
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode("utf-8"),
-        method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "x-admin-api-key": key,
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=8) as res:
-            if res.status >= 400:
-                log.warning("LIRA send_agent_log_to_rits HTTP %s", res.status)
-    except urllib.error.HTTPError as e:
-        log.warning("LIRA send_agent_log_to_rits HTTP %s", e.code)
-    except Exception:
-        log.debug("send_agent_log_to_rits failed", exc_info=True)
+    retryable = {429, 502, 503, 504}
+    for attempt in range(4):
+        if attempt > 0:
+            time.sleep(0.5 * attempt)
+        else:
+            try:
+                urllib.request.urlopen(f"{base}/health", timeout=12)
+            except Exception:
+                pass
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "x-admin-api-key": key,
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=12) as res:
+                if res.status < 400:
+                    return
+                if res.status not in retryable or attempt >= 3:
+                    log.warning("LIRA send_agent_log_to_rits HTTP %s", res.status)
+                    return
+        except urllib.error.HTTPError as e:
+            if e.code not in retryable or attempt >= 3:
+                log.warning("LIRA send_agent_log_to_rits HTTP %s", e.code)
+                return
+        except Exception:
+            if attempt >= 3:
+                log.debug("send_agent_log_to_rits failed", exc_info=True)
+                return
 
 
 def record_line_exchange_to_rits(
